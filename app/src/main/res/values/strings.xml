@@ -1,0 +1,70 @@
+<resources>
+    <string name="app_name">MilkTick</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_rate">Rate</string>
+    <string name="nav_records">Records</string>
+    <string name="nav_summary">Summary</string>
+    <string name="nav_settings">Settings</string>
+    
+    <!-- Home Screen -->
+    <string name="home_title">Home</string>
+    <string name="did_you_bring_milk">Did you bring milk today?</string>
+    <string name="quantity">Quantity</string>
+    <string name="quantity_hint">Enter quantity in liters</string>
+    <string name="note">Note</string>
+    <string name="note_hint">Add a note (optional)</string>
+    <string name="save">Save</string>
+    <string name="today">Today</string>
+    
+    <!-- Rate Screen -->
+    <string name="rate_title">Monthly Rate</string>
+    <string name="milk_rate_per_liter">Milk Rate per Liter</string>
+    <string name="rate_hint">Enter rate in rupees</string>
+    
+    <!-- Records Screen -->
+    <string name="records_title">Records</string>
+    <string name="total_days">Total Days</string>
+    <string name="total_liters">Total Liters</string>
+    <string name="total_cost">Total Cost</string>
+    <string name="days_milk_brought">Days Milk Brought</string>
+    
+    <!-- Summary Screen -->
+    <string name="summary_title">Monthly Summary</string>
+    <string name="total_days_milk_brought">Total Days Milk was Brought</string>
+    <string name="export_data">Export Data</string>
+    
+    <!-- Auth -->
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="email_hint">Enter your email</string>
+    <string name="password_hint">Enter your password</string>
+    <string name="logout">Logout</string>
+    
+    <!-- Messages -->
+    <string name="data_saved">Data saved successfully</string>
+    <string name="error_saving">Error saving data</string>
+    <string name="csv_exported">CSV exported successfully</string>
+    <string name="error_exporting">Error exporting CSV</string>
+    <string name="login_successful">Login successful</string>
+    <string name="login_failed">Login failed</string>
+    <string name="register_successful">Registration successful</string>
+    <string name="register_failed">Registration failed</string>
+    
+    <!-- Months -->
+    <string name="january">January</string>
+    <string name="february">February</string>
+    <string name="march">March</string>
+    <string name="april">April</string>
+    <string name="may">May</string>
+    <string name="june">June</string>
+    <string name="july">July</string>
+    <string name="august">August</string>
+    <string name="september">September</string>
+    <string name="october">October</string>
+    <string name="november">November</string>
+    <string name="december">December</string>
+</resources> 
