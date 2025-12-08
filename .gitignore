@@ -58,6 +58,11 @@ captures/
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
+app/google-services.json
+
+# VS Code workspace settings (user-specific)
+.vscode/
+
 # Add app module build outputs
 app/build/
 
