@@ -19,7 +19,7 @@ class ThemePreferences(context: Context) {
         
         // Default values
         private const val DEFAULT_THEME_MODE = "AUTO"
-        private const val DEFAULT_ACCENT_COLOR = 0xFF003153 // Navy (original accent)
+        private const val DEFAULT_ACCENT_COLOR = 0xFF146EBE // Azure default accent
     }
     
     fun getThemeMode(): ThemeMode {
@@ -47,7 +47,7 @@ class ThemePreferences(context: Context) {
     // Available accent colors
     fun getAvailableColors(): List<Pair<String, Color>> {
         return listOf(
-            "Navy" to Color(0xFF003153),
+            "Azure" to Color(0xFF146EBE),
             "Teal" to Color(0xFF26A69A),
             "Blue" to Color(0xFF42A5F5),
             "Green" to Color(0xFF66BB6A),
