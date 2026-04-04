@@ -6,20 +6,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.StickyNote2
-import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LocalDrink
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -120,7 +113,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Coffee,
+                                painter = painterResource(R.drawable.ic_fa_mug_hot),
                                 contentDescription = "Milk",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(28.dp)
@@ -178,7 +171,7 @@ fun HomeScreen(
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Icon(
-                                        Icons.Default.Edit,
+                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
                                         contentDescription = "Edit",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
@@ -322,9 +315,10 @@ fun HomeScreen(
                                                 ),
                                                 leadingIcon = {
                                                     Icon(
-                                                        Icons.Default.LocalDrink,
+                                                        painter = painterResource(R.drawable.ic_fa_glass_water),
                                                         contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(18.dp)
                                                     )
                                                 }
                                             )
@@ -343,9 +337,10 @@ fun HomeScreen(
                                                 ),
                                                 leadingIcon = {
                                                     Icon(
-                                                        Icons.AutoMirrored.Filled.StickyNote2,
+                                                        painter = painterResource(R.drawable.ic_fa_note_sticky),
                                                         contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(18.dp)
                                                     )
                                                 }
                                             )
@@ -368,7 +363,7 @@ fun HomeScreen(
                                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                                 ) {
                                                     Icon(
-                                                        Icons.Default.LocalDrink,
+                                                        painter = painterResource(R.drawable.ic_fa_glass_water),
                                                         contentDescription = null,
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(24.dp)
@@ -402,7 +397,7 @@ fun HomeScreen(
                                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                                 ) {
                                                     Icon(
-                                                        Icons.AutoMirrored.Filled.StickyNote2,
+                                                        painter = painterResource(R.drawable.ic_fa_note_sticky),
                                                         contentDescription = null,
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(24.dp)
