@@ -6,13 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -85,9 +79,10 @@ fun RecordsScreen(
                     Box {
                         IconButton(onClick = { showExportMenu = true }) {
                             Icon(
-                                Icons.Default.MoreVert,
+                                painter = painterResource(R.drawable.ic_fa_ellipsis_vertical),
                                 contentDescription = "Menu",
-                                tint = MaterialTheme.colorScheme.onSecondary
+                                tint = MaterialTheme.colorScheme.onSecondary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         
@@ -114,7 +109,7 @@ fun RecordsScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Default.Download,
+                                        painter = painterResource(R.drawable.ic_fa_download),
                                         contentDescription = null
                                     )
                                 }
@@ -199,9 +194,10 @@ fun RecordsScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Icon(
-                                        Icons.Default.ArrowDropDown,
+                                        painter = painterResource(R.drawable.ic_fa_chevron_down),
                                         contentDescription = "Select Year",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -464,7 +460,7 @@ fun YearExportDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Download,
+                    painter = painterResource(R.drawable.ic_fa_download),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
@@ -600,7 +596,7 @@ fun YearExportDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Default.Info,
+                                painter = painterResource(R.drawable.ic_fa_circle_info),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.size(20.dp)
@@ -659,7 +655,7 @@ fun YearExportDialog(
                             }
                             "completed" -> {
                                 Icon(
-                                    Icons.Default.CheckCircle,
+                                    painter = painterResource(R.drawable.ic_fa_circle_check),
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                     tint = MaterialTheme.colorScheme.onTertiary
@@ -669,7 +665,7 @@ fun YearExportDialog(
                             }
                             else -> {
                                 Icon(
-                                    Icons.Default.Download,
+                                    painter = painterResource(R.drawable.ic_fa_download),
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp)
                                 )
