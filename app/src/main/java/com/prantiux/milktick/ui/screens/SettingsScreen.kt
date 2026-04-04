@@ -6,23 +6,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
 import com.prantiux.milktick.ui.components.ModernLogoutDialog
 import com.prantiux.milktick.viewmodel.AuthViewModel
@@ -110,7 +107,7 @@ fun SettingsScreen(
                         ) {
                             // Edit Profile
                             SettingsItem(
-                                icon = Icons.Default.Person,
+                                icon = R.drawable.ic_fa_user,
                                 title = "Edit Profile",
                                 subtitle = "Update your personal information"
                             ) {
@@ -124,7 +121,7 @@ fun SettingsScreen(
                             
                             // Change Password
                             SettingsItem(
-                                icon = Icons.Default.Lock,
+                                icon = R.drawable.ic_fa_lock,
                                 title = "Change Password",
                                 subtitle = "Update your account password"
                             ) {
@@ -138,7 +135,7 @@ fun SettingsScreen(
                             
                             // Notifications
                             SettingsItem(
-                                icon = Icons.Default.Notifications,
+                                icon = R.drawable.ic_fa_bell,
                                 title = "Notifications",
                                 subtitle = "Manage your notification preferences"
                             ) {
@@ -152,7 +149,7 @@ fun SettingsScreen(
                             
                             // Theme
                             SettingsItem(
-                                icon = Icons.Default.Palette,
+                                icon = R.drawable.ic_fa_circle_info,
                                 title = "Theme",
                                 subtitle = "Customize appearance and colors"
                             ) {
@@ -166,7 +163,7 @@ fun SettingsScreen(
                             
                             // About
                             SettingsItem(
-                                icon = Icons.Default.Info,
+                                icon = R.drawable.ic_fa_circle_info,
                                 title = "About MilkTick",
                                 subtitle = "App version and information"
                             ) {
@@ -180,7 +177,7 @@ fun SettingsScreen(
                             
                             // Sign Out
                             SettingsItem(
-                                icon = Icons.AutoMirrored.Filled.Logout,
+                                icon = R.drawable.ic_fa_right_from_bracket,
                                 title = "Sign Out",
                                 subtitle = "Sign out of your account",
                                 isDanger = true
@@ -255,7 +252,7 @@ fun SimpleProfileCard(userEmail: String) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Person,
+                    painter = painterResource(R.drawable.ic_fa_user),
                     contentDescription = "Profile",
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(32.dp)
@@ -285,7 +282,7 @@ fun SimpleProfileCard(userEmail: String) {
 // Settings Item Component
 @Composable
 fun SettingsItem(
-    icon: ImageVector,
+    icon: Int,
     title: String,
     subtitle: String,
     isDanger: Boolean = false,
@@ -301,15 +298,15 @@ fun SettingsItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(
-            icon,
+            painter = painterResource(icon),
             contentDescription = null,
             tint = if (isDanger) 
                 MaterialTheme.colorScheme.error 
             else 
                 MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
-        
+
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -317,9 +314,9 @@ fun SettingsItem(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
-                color = if (isDanger) 
-                    MaterialTheme.colorScheme.error 
-                else 
+                color = if (isDanger)
+                    MaterialTheme.colorScheme.error
+                else
                     MaterialTheme.colorScheme.onSurface
             )
             Text(
@@ -329,11 +326,5 @@ fun SettingsItem(
             )
         }
         
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "Navigate",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(20.dp)
-        )
     }
 }
