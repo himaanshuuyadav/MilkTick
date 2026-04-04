@@ -6,18 +6,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.EventNote
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -137,7 +134,7 @@ fun SummaryScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Icon(
-                                Icons.Default.CalendarMonth,
+                                painter = painterResource(R.drawable.ic_fa_calendar_days),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(32.dp)
@@ -200,7 +197,7 @@ fun SummaryScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             ModernSummaryCard(
-                                icon = Icons.AutoMirrored.Filled.EventNote,
+                                icon = R.drawable.ic_fa_circle_info,
                                 title = "Days",
                                 value = "${uiState.totalDays}",
                                 subtitle = "Milk brought",
@@ -210,7 +207,7 @@ fun SummaryScreen(
                             )
                             
                             ModernSummaryCard(
-                                icon = Icons.Default.LocalDrink,
+                                icon = R.drawable.ic_fa_bell,
                                 title = "Total",
                                 value = "${uiState.totalLiters}L",
                                 subtitle = "Milk Brought",
@@ -238,7 +235,7 @@ fun SummaryScreen(
                                 horizontalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.CurrencyRupee,
+                                    painter = painterResource(R.drawable.ic_fa_circle_info),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(36.dp)
@@ -277,14 +274,14 @@ fun SummaryScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             QuickStatCard(
-                                icon = Icons.Default.Timeline,
+                                icon = R.drawable.ic_fa_circle_info,
                                 label = "Avg per day",
                                 value = if (uiState.totalDays > 0) "${String.format("%.1f", uiState.totalLiters / uiState.totalDays)}L" else "0L",
                                 modifier = Modifier.weight(1f)
                             )
                             
                             QuickStatCard(
-                                icon = Icons.Default.Percent,
+                                icon = R.drawable.ic_fa_circle_info,
                                 label = "Active days",
                                 value = "${if (uiState.selectedYearMonth.lengthOfMonth() > 0) (uiState.totalDays * 100 / uiState.selectedYearMonth.lengthOfMonth()) else 0}%",
                                 modifier = Modifier.weight(1f)
@@ -366,7 +363,7 @@ fun SummaryScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Default.CheckCircle,
+                                            painter = painterResource(R.drawable.ic_fa_circle_info),
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -383,7 +380,7 @@ fun SummaryScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Default.FileDownload,
+                                            painter = painterResource(R.drawable.ic_fa_download),
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -405,7 +402,7 @@ fun SummaryScreen(
 
 @Composable
 fun ModernSummaryCard(
-    icon: ImageVector,
+    icon: Int,
     title: String,
     value: String,
     subtitle: String,
@@ -436,7 +433,7 @@ fun ModernSummaryCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(
-                    icon,
+                    painter = painterResource(icon),
                     contentDescription = null,
                     tint = iconColor,
                     modifier = Modifier.size(20.dp)
@@ -462,7 +459,7 @@ fun ModernSummaryCard(
 
 @Composable
 fun QuickStatCard(
-    icon: ImageVector,
+    icon: Int,
     label: String,
     value: String,
     modifier: Modifier = Modifier
@@ -481,7 +478,7 @@ fun QuickStatCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                icon,
+                painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
@@ -574,7 +571,7 @@ fun EntryCard(
             
             // Status icon
             Icon(
-                if (entry.brought) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                painter = painterResource(if (entry.brought) R.drawable.ic_fa_circle_check else R.drawable.ic_fa_circle_xmark),
                 contentDescription = null,
                 tint = if (entry.brought) 
                     MaterialTheme.colorScheme.primary 
