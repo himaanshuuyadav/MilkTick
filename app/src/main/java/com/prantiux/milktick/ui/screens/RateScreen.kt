@@ -5,9 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -125,7 +123,7 @@ fun RateScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.TrendingUp,
+                                    painter = painterResource(R.drawable.ic_fa_arrow_trend_up),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(24.dp)
@@ -191,7 +189,7 @@ fun RateScreen(
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Icon(
-                                        Icons.Default.Edit,
+                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
                                         contentDescription = "Edit",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
@@ -214,7 +212,7 @@ fun RateScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.CalendarToday,
+                                    painter = painterResource(R.drawable.ic_fa_calendar_day),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
@@ -272,9 +270,10 @@ fun RateScreen(
                                         ),
                                         leadingIcon = {
                                             Icon(
-                                                Icons.Default.AttachMoney,
+                                                painter = painterResource(R.drawable.ic_fa_indian_rupee_sign),
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     )
@@ -292,9 +291,10 @@ fun RateScreen(
                                         ),
                                         leadingIcon = {
                                             Icon(
-                                                Icons.Default.LocalDrink,
+                                                painter = painterResource(R.drawable.ic_fa_glass_water),
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     )
@@ -317,7 +317,7 @@ fun RateScreen(
                                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
                                             Icon(
-                                                Icons.Default.AttachMoney,
+                                                painter = painterResource(R.drawable.ic_fa_indian_rupee_sign),
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(24.dp)
@@ -351,7 +351,7 @@ fun RateScreen(
                                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
                                             Icon(
-                                                Icons.Default.LocalDrink,
+                                                painter = painterResource(R.drawable.ic_fa_glass_water),
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(24.dp)
@@ -445,7 +445,7 @@ fun RateScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Default.Save,
+                                            painter = painterResource(R.drawable.ic_fa_floppy_disk),
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -479,7 +479,7 @@ fun RateScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Default.CheckCircle,
+                                            painter = painterResource(R.drawable.ic_fa_circle_check),
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp),
                                             tint = MaterialTheme.colorScheme.onTertiary
@@ -498,7 +498,7 @@ fun RateScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Default.Delete,
+                                            painter = painterResource(R.drawable.ic_fa_trash),
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp),
                                             tint = MaterialTheme.colorScheme.onError
@@ -543,7 +543,7 @@ fun RateScreen(
                         )
                     ) {
                         Icon(
-                            Icons.Default.Cancel,
+                            painter = painterResource(R.drawable.ic_fa_circle_xmark),
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
