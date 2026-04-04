@@ -5,21 +5,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.prantiux.milktick.R
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.DebugViewModel
 
@@ -57,7 +55,7 @@ fun DebugScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            painter = painterResource(R.drawable.ic_fa_arrow_left), 
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onSecondary
                         )
@@ -163,7 +161,7 @@ fun DebugScreen(
                     )
                     
                     DebugTestItem(
-                        icon = Icons.Default.CloudSync,
+                        iconRes = R.drawable.ic_fa_arrows_rotate,
                         title = "Test Firebase Connection",
                         subtitle = "Check if Firebase is working properly",
                         isLoading = debugState.isLoading,
@@ -177,7 +175,7 @@ fun DebugScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     DebugTestItem(
-                        icon = Icons.Default.AccountCircle,
+                        iconRes = R.drawable.ic_fa_circle_user,
                         title = "Check Authentication",
                         subtitle = "Verify user authentication status",
                         isLoading = debugState.isLoading,
@@ -191,7 +189,7 @@ fun DebugScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     DebugTestItem(
-                        icon = Icons.Default.Save,
+                        iconRes = R.drawable.ic_fa_floppy_disk,
                         title = "Test Save Milk Entry",
                         subtitle = "Test saving daily milk data",
                         isLoading = debugState.isLoading,
@@ -211,7 +209,7 @@ fun DebugScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     DebugTestItem(
-                        icon = Icons.Default.AttachMoney,
+                        iconRes = R.drawable.ic_fa_indian_rupee_sign,
                         title = "Test Save Monthly Rate",
                         subtitle = "Test saving rate and default quantity",
                         isLoading = debugState.isLoading,
@@ -228,7 +226,7 @@ fun DebugScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     DebugTestItem(
-                        icon = Icons.Default.Download,
+                        iconRes = R.drawable.ic_fa_download,
                         title = "Test Load Data",
                         subtitle = "Test loading existing data from database",
                         isLoading = debugState.isLoading,
@@ -245,7 +243,7 @@ fun DebugScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     DebugTestItem(
-                        icon = Icons.Default.Delete,
+                        iconRes = R.drawable.ic_fa_trash,
                         title = "Test Delete Permissions",
                         subtitle = "Test if delete operations are allowed by Firestore rules",
                         isLoading = debugState.isLoading,
@@ -323,7 +321,7 @@ fun DebugScreen(
 
 @Composable
 private fun DebugTestItem(
-    icon: ImageVector,
+    iconRes: Int,
     title: String,
     subtitle: String,
     isLoading: Boolean,
@@ -356,7 +354,7 @@ private fun DebugTestItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    icon,
+                    painter = painterResource(iconRes),
                     contentDescription = null,
                     modifier = Modifier.size(28.dp),
                     tint = if (isLoading) MaterialTheme.colorScheme.onSurfaceVariant 
@@ -389,7 +387,7 @@ private fun DebugTestItem(
                     )
                 } else {
                     Icon(
-                        Icons.Default.PlayArrow,
+                        painter = painterResource(R.drawable.ic_fa_play),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.primary
