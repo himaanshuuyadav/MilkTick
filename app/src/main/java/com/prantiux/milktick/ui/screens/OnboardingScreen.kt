@@ -13,9 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,13 +21,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.prantiux.milktick.R
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -184,7 +182,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            painter = painterResource(R.drawable.ic_fa_arrow_left),
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -257,7 +255,7 @@ fun WelcomePage() {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Default.LocalDrink,
+                painter = painterResource(R.drawable.ic_fa_calendar_days),
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -291,17 +289,17 @@ fun WelcomePage() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OnboardingFeatureItem(
-                icon = Icons.Default.CalendarMonth,
+                icon = R.drawable.ic_fa_calendar_days,
                 title = "Easy Tracking",
                 description = "Mark daily milk deliveries with quantity"
             )
             OnboardingFeatureItem(
-                icon = Icons.Default.Receipt,
+                icon = R.drawable.ic_fa_circle_info,
                 title = "Payment Management",
                 description = "Track monthly payments and rates"
             )
             OnboardingFeatureItem(
-                icon = Icons.Default.Analytics,
+                icon = R.drawable.ic_fa_circle_info,
                 title = "Detailed Records",
                 description = "View summaries and export data anytime"
             )
@@ -343,7 +341,7 @@ fun PermissionPage(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                if (isGranted) Icons.Default.LockOpen else Icons.Default.Lock,
+                painter = painterResource(if (isGranted) R.drawable.ic_fa_lock else R.drawable.ic_fa_lock),
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
                 tint = if (isGranted) 
@@ -381,7 +379,7 @@ fun PermissionPage(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    painter = painterResource(R.drawable.ic_fa_circle_info),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
@@ -434,7 +432,7 @@ fun FeaturesPage() {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Default.ViewCarousel,
+                painter = painterResource(R.drawable.ic_fa_calendar_days),
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -470,13 +468,13 @@ fun FeaturesPage() {
         ) {
             FeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.Notifications,
+                icon = R.drawable.ic_fa_bell,
                 title = "Reminders",
                 subtitle = "Daily alerts"
             )
             FeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.DarkMode,
+                icon = R.drawable.ic_fa_circle_info,
                 title = "Themes",
                 subtitle = "Light & Dark"
             )
@@ -490,13 +488,13 @@ fun FeaturesPage() {
         ) {
             FeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.Assessment,
+                icon = R.drawable.ic_fa_circle_info,
                 title = "Reports",
                 subtitle = "Monthly data"
             )
             FeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.CloudDownload,
+                icon = R.drawable.ic_fa_download,
                 title = "Export",
                 subtitle = "CSV format"
             )
@@ -506,7 +504,7 @@ fun FeaturesPage() {
 
 @Composable
 fun OnboardingFeatureItem(
-    icon: ImageVector,
+    icon: Int,
     title: String,
     description: String
 ) {
@@ -525,7 +523,7 @@ fun OnboardingFeatureItem(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                icon,
+                painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
@@ -554,7 +552,7 @@ fun OnboardingFeatureItem(
 @Composable
 fun FeatureCard(
     modifier: Modifier = Modifier,
-    icon: ImageVector,
+    icon: Int,
     title: String,
     subtitle: String
 ) {
@@ -573,7 +571,7 @@ fun FeatureCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                icon,
+                painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
