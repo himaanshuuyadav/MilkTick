@@ -6,9 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,10 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.prantiux.milktick.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +32,7 @@ fun ThemeScreen(navController: NavController) {
         mutableStateOf(
             themePreferences.getAvailableColors().find { 
                 it.second == themePreferences.getAccentColor() 
-            }?.first ?: "Navy"
+            }?.first ?: "Azure"
         )
     }
     
@@ -43,7 +42,7 @@ fun ThemeScreen(navController: NavController) {
                 title = { Text("Theme & Appearance") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -82,7 +81,7 @@ fun ThemeScreen(navController: NavController) {
                 item {
                     ThemeSection(
                         title = "Theme Mode",
-                        icon = Icons.Default.DarkMode
+                        iconRes = R.drawable.ic_fa_moon
                     ) {
                         Column(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -122,18 +121,18 @@ fun ThemeScreen(navController: NavController) {
                 item {
                     ThemeSection(
                         title = "Accent Color",
-                        icon = Icons.Default.Palette
+                        iconRes = R.drawable.ic_fa_palette
                     ) {
                         Column(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             ColorSchemeOption(
-                                name = "Navy",
-                                color = Color(0xFF003153), // Original accent
-                                selected = selectedColorScheme == "Navy",
+                                name = "Azure",
+                                color = Color(0xFF146EBE),
+                                selected = selectedColorScheme == "Azure",
                                 onClick = { 
-                                    selectedColorScheme = "Navy"
-                                    themePreferences.setAccentColor(Color(0xFF003153))
+                                    selectedColorScheme = "Azure"
+                                    themePreferences.setAccentColor(Color(0xFF146EBE))
                                 }
                             )
                             ColorSchemeOption(
@@ -209,7 +208,7 @@ fun ThemeScreen(navController: NavController) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Default.Info,
+                                painter = painterResource(R.drawable.ic_fa_circle_info),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -229,7 +228,7 @@ fun ThemeScreen(navController: NavController) {
 @Composable
 fun ThemeSection(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconRes: Int,
     content: @Composable () -> Unit
 ) {
     Card(
@@ -260,7 +259,7 @@ fun ThemeSection(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            icon,
+                            painter = painterResource(iconRes),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -331,7 +330,7 @@ fun ThemeOption(
             
             if (selected) {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    painter = painterResource(R.drawable.ic_fa_circle_check),
                     contentDescription = "Selected",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
@@ -398,7 +397,7 @@ fun ColorSchemeOption(
             
             if (selected) {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    painter = painterResource(R.drawable.ic_fa_circle_check),
                     contentDescription = "Selected",
                     tint = color,
                     modifier = Modifier.size(24.dp)
