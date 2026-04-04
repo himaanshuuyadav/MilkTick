@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,12 +19,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.prantiux.milktick.R
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
@@ -101,7 +99,7 @@ fun EditProfileScreen(
                 title = { Text("Edit Profile") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -162,7 +160,7 @@ fun EditProfileScreen(
                             label = { Text("Display Name") },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.Person,
+                                    painter = painterResource(R.drawable.ic_fa_user),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
