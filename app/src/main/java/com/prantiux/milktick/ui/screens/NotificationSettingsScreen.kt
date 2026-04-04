@@ -5,21 +5,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.prantiux.milktick.R
 import com.prantiux.milktick.notification.NotificationScheduler
 import com.prantiux.milktick.repository.FirestoreRepository
 import com.prantiux.milktick.utils.NotificationPreferences
@@ -88,7 +86,7 @@ fun NotificationSettingsScreen(
                 title = { Text("Notification Settings") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -143,7 +141,7 @@ fun NotificationSettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Notifications,
+                                    painter = painterResource(R.drawable.ic_fa_bell),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(28.dp)
@@ -185,7 +183,7 @@ fun NotificationSettingsScreen(
                 
                 item {
                     NotificationTimeCard(
-                        icon = Icons.Default.LunchDining,
+                        iconRes = R.drawable.ic_fa_utensils,
                         title = "Daily Milk Reminder",
                         subtitle = "Remind to log daily milk",
                         time = dailyReminderTime,
@@ -203,7 +201,7 @@ fun NotificationSettingsScreen(
                 
                 item {
                     NotificationTimeCard(
-                        icon = Icons.Default.WbTwilight,
+                        iconRes = R.drawable.ic_fa_cloud_sun,
                         title = "Evening Reminder",
                         subtitle = "Evening check-in notification",
                         time = eveningReminderTime,
@@ -221,7 +219,7 @@ fun NotificationSettingsScreen(
                 
                 item {
                     NotificationTimeCard(
-                        icon = Icons.Default.CalendarMonth,
+                        iconRes = R.drawable.ic_fa_calendar_days,
                         title = "Monthly Rate Reminder",
                         subtitle = "Set rates on 1st of every month",
                         time = monthlyRateTime,
@@ -316,7 +314,7 @@ fun TimePickerDialog(
 
 @Composable
 fun NotificationTimeCard(
-    icon: ImageVector,
+    iconRes: Int,
     title: String,
     subtitle: String,
     time: Pair<Int, Int>,
@@ -346,7 +344,7 @@ fun NotificationTimeCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
-                        icon,
+                        painter = painterResource(iconRes),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
@@ -389,7 +387,7 @@ fun NotificationTimeCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.AccessTime,
+                            painter = painterResource(R.drawable.ic_fa_circle_info),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
