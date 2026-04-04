@@ -5,21 +5,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.EventNote
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.prantiux.milktick.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +27,7 @@ fun AboutScreen(navController: NavController) {
                 title = { Text("About MilkTick") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -100,7 +97,7 @@ fun AboutScreen(navController: NavController) {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.Default.LocalDrink,
+                                    painter = painterResource(R.drawable.ic_fa_calendar_days),
                                     contentDescription = "MilkTick Logo",
                                     tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(60.dp)
@@ -152,7 +149,7 @@ fun AboutScreen(navController: NavController) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Info,
+                                    painter = painterResource(R.drawable.ic_fa_circle_info),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
@@ -199,7 +196,7 @@ fun AboutScreen(navController: NavController) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Star,
+                                    painter = painterResource(R.drawable.ic_fa_circle_info),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
@@ -216,37 +213,37 @@ fun AboutScreen(navController: NavController) {
                             )
                             
                             FeatureItem(
-                                icon = Icons.AutoMirrored.Filled.EventNote,
+                                icon = R.drawable.ic_fa_circle_info,
                                 title = "Daily Tracking",
                                 description = "Record milk quantity and delivery details every day"
                             )
                             
                             FeatureItem(
-                                icon = Icons.Default.CalendarMonth,
+                                icon = R.drawable.ic_fa_calendar_days,
                                 title = "Calendar View",
                                 description = "Visualize your milk delivery history in an intuitive calendar"
                             )
                             
                             FeatureItem(
-                                icon = Icons.Default.Assessment,
+                                icon = R.drawable.ic_fa_circle_info,
                                 title = "Monthly Reports",
                                 description = "Get detailed summaries and insights for each month"
                             )
                             
                             FeatureItem(
-                                icon = Icons.Default.AccountBalanceWallet,
+                                icon = R.drawable.ic_fa_circle_info,
                                 title = "Payment Management",
                                 description = "Track payment status and maintain financial records"
                             )
                             
                             FeatureItem(
-                                icon = Icons.Default.Download,
+                                icon = R.drawable.ic_fa_download,
                                 title = "Export Data",
                                 description = "Export your records to CSV for backup and analysis"
                             )
                             
                             FeatureItem(
-                                icon = Icons.Default.NotificationsActive,
+                                icon = R.drawable.ic_fa_bell,
                                 title = "Smart Notifications",
                                 description = "Receive reminders to log your daily milk entries"
                             )
@@ -274,7 +271,7 @@ fun AboutScreen(navController: NavController) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Code,
+                                    painter = painterResource(R.drawable.ic_fa_circle_info),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
@@ -342,7 +339,7 @@ fun AboutScreen(navController: NavController) {
 
 @Composable
 fun FeatureItem(
-    icon: ImageVector,
+    icon: Int,
     title: String,
     description: String
 ) {
@@ -361,7 +358,7 @@ fun FeatureItem(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                icon,
+                painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
