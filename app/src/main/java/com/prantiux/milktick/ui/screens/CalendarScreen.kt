@@ -9,16 +9,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.LocalDrink
-import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
 import com.prantiux.milktick.ui.components.SkeletonLoadingBox
 import com.prantiux.milktick.viewmodel.AuthViewModel
@@ -90,7 +82,7 @@ fun CalendarScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -99,9 +91,10 @@ fun CalendarScreen(
                             onClick = { showMonthMenu = true }
                         ) {
                             Icon(
-                                Icons.Default.MoreVert,
+                                painter = painterResource(R.drawable.ic_fa_ellipsis_vertical),
                                 contentDescription = "Options",
-                                tint = MaterialTheme.colorScheme.onSecondary
+                                tint = MaterialTheme.colorScheme.onSecondary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         
@@ -119,7 +112,7 @@ fun CalendarScreen(
                                 text = { Text("Export Month Data") },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Download,
+                                        painter = painterResource(R.drawable.ic_fa_download),
                                         contentDescription = null
                                     )
                                 },
@@ -132,7 +125,7 @@ fun CalendarScreen(
                                 text = { Text("Update Monthly Rate") },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Edit,
+                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
                                         contentDescription = null
                                     )
                                 },
@@ -489,7 +482,7 @@ fun CalendarScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.CheckCircle,
+                                    painter = painterResource(R.drawable.ic_fa_circle_check),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
@@ -512,7 +505,7 @@ fun CalendarScreen(
                                         )
                                 ) {
                                     Icon(
-                                        Icons.Default.Edit,
+                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
                                         contentDescription = "Edit Payment",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
@@ -558,7 +551,7 @@ fun CalendarScreen(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Icon(
-                                        Icons.Default.CheckCircle,
+                                        painter = painterResource(R.drawable.ic_fa_circle_check),
                                         contentDescription = null,
                                         tint = if (uiState.isPaid) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(32.dp)
@@ -600,7 +593,7 @@ fun CalendarScreen(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Icon(
-                                        Icons.Default.Cancel,
+                                        painter = painterResource(R.drawable.ic_fa_circle_xmark),
                                         contentDescription = null,
                                         tint = if (!uiState.isPaid) Color(0xFFE57373) else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(32.dp)
@@ -688,7 +681,7 @@ fun CalendarScreen(
                                     )
                                 ) {
                                     Icon(
-                                        Icons.Default.CheckCircle,
+                                        painter = painterResource(R.drawable.ic_fa_circle_check),
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -858,7 +851,7 @@ fun DateDetailDialog(
                             )
                     ) {
                         Icon(
-                            Icons.Default.Edit,
+                            painter = painterResource(R.drawable.ic_fa_pen_to_square),
                             contentDescription = "Edit",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -892,11 +885,13 @@ fun DateDetailDialog(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Icon(
-                                when {
-                                    hasEntry -> Icons.Default.CheckCircle
-                                    hasNoDelivery -> Icons.Default.Cancel
-                                    else -> Icons.Default.Info
-                                },
+                                painter = painterResource(
+                                    when {
+                                        hasEntry -> R.drawable.ic_fa_circle_check
+                                        hasNoDelivery -> R.drawable.ic_fa_circle_xmark
+                                        else -> R.drawable.ic_fa_circle_info
+                                    }
+                                ),
                                 contentDescription = null,
                                 tint = when {
                                     hasEntry -> Color(0xFF4CAF50)
@@ -1050,7 +1045,7 @@ fun DateDetailDialog(
                                 placeholder = { Text("Enter quantity") },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.LocalDrink,
+                                        painter = painterResource(R.drawable.ic_fa_glass_water),
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -1072,7 +1067,7 @@ fun DateDetailDialog(
                                 placeholder = { Text("Add a note...") },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Edit,
+                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -1123,7 +1118,7 @@ fun DateDetailDialog(
                         )
                     } else {
                         Icon(
-                            Icons.Default.CheckCircle,
+                            painter = painterResource(R.drawable.ic_fa_circle_check),
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
@@ -1192,7 +1187,7 @@ fun ExportDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Download,
+                    painter = painterResource(R.drawable.ic_fa_file_arrow_down),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
@@ -1300,7 +1295,7 @@ fun ExportDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Info,
+                            painter = painterResource(R.drawable.ic_fa_circle_info),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(20.dp)
@@ -1374,7 +1369,7 @@ fun ExportDialog(
                             }
                             "completed" -> {
                                 Icon(
-                                    Icons.Default.CheckCircle,
+                                    painter = painterResource(R.drawable.ic_fa_circle_check),
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                     tint = MaterialTheme.colorScheme.onTertiary
@@ -1384,7 +1379,7 @@ fun ExportDialog(
                             }
                             else -> {
                                 Icon(
-                                    Icons.Default.Download,
+                                    painter = painterResource(R.drawable.ic_fa_file_arrow_down),
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -1520,7 +1515,7 @@ fun UpdateMonthlyRateDialog(
                         placeholder = { Text("Enter rate in rupees") },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.CurrencyRupee,
+                                painter = painterResource(R.drawable.ic_fa_indian_rupee_sign),
                                 contentDescription = null
                             )
                         },
@@ -1558,7 +1553,7 @@ fun UpdateMonthlyRateDialog(
                         placeholder = { Text("Enter quantity in liters") },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.LocalDrink,
+                                painter = painterResource(R.drawable.ic_fa_glass_water),
                                 contentDescription = null
                             )
                         },
