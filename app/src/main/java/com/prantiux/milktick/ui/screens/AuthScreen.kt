@@ -22,12 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -126,7 +120,7 @@ fun AuthScreen(
         ) {
             // App branding section
             Image(
-                painter = painterResource(id = R.drawable.app_icon),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground_image),
                 contentDescription = "MilkTick Logo",
                 modifier = Modifier
                     .size(120.dp)
@@ -179,9 +173,10 @@ fun AuthScreen(
                         label = { Text("Email") },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.Email,
+                                painter = painterResource(R.drawable.ic_fa_user),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
                             )
                         },
                         keyboardOptions = KeyboardOptions(
@@ -218,9 +213,10 @@ fun AuthScreen(
                             label = { Text("Full Name") },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.Person,
+                                    painter = painterResource(R.drawable.ic_fa_user),
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             },
                             keyboardOptions = KeyboardOptions(
@@ -245,9 +241,10 @@ fun AuthScreen(
                         label = { Text("Password") },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.Lock,
+                                painter = painterResource(R.drawable.ic_fa_lock),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
                             )
                         },
                         trailingIcon = {
@@ -255,9 +252,12 @@ fun AuthScreen(
                                 onClick = { passwordVisible = !passwordVisible }
                             ) {
                                 Icon(
-                                    if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    painter = painterResource(
+                                        if (passwordVisible) R.drawable.ic_fa_eye_slash else R.drawable.ic_fa_eye
+                                    ),
                                     contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         },
@@ -296,9 +296,10 @@ fun AuthScreen(
                             label = { Text("Confirm Password") },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.Lock,
+                                    painter = painterResource(R.drawable.ic_fa_lock),
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             },
                             trailingIcon = {
@@ -306,9 +307,12 @@ fun AuthScreen(
                                     onClick = { confirmPasswordVisible = !confirmPasswordVisible }
                                 ) {
                                     Icon(
-                                        if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        painter = painterResource(
+                                            if (confirmPasswordVisible) R.drawable.ic_fa_eye_slash else R.drawable.ic_fa_eye
+                                        ),
                                         contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             },
