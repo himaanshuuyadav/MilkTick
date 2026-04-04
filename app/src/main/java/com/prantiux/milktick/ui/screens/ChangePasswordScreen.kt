@@ -4,17 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -22,6 +18,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.prantiux.milktick.R
 import com.prantiux.milktick.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,7 +46,7 @@ fun ChangePasswordScreen(
                 title = { Text("Change Password") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -135,7 +132,7 @@ fun ChangePasswordScreen(
                             label = { Text("Current Password") },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.Lock,
+                                    painter = painterResource(R.drawable.ic_fa_lock),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -148,7 +145,9 @@ fun ChangePasswordScreen(
                             trailingIcon = {
                                 IconButton(onClick = { currentPasswordVisible = !currentPasswordVisible }) {
                                     Icon(
-                                        imageVector = if (currentPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        painter = painterResource(
+                                            if (currentPasswordVisible) R.drawable.ic_fa_eye else R.drawable.ic_fa_eye_slash
+                                        ),
                                         contentDescription = if (currentPasswordVisible) "Hide password" else "Show password"
                                     )
                                 }
@@ -167,7 +166,7 @@ fun ChangePasswordScreen(
                             label = { Text("New Password") },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.Lock,
+                                    painter = painterResource(R.drawable.ic_fa_lock),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -180,7 +179,9 @@ fun ChangePasswordScreen(
                             trailingIcon = {
                                 IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
                                     Icon(
-                                        imageVector = if (newPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        painter = painterResource(
+                                            if (newPasswordVisible) R.drawable.ic_fa_eye else R.drawable.ic_fa_eye_slash
+                                        ),
                                         contentDescription = if (newPasswordVisible) "Hide password" else "Show password"
                                     )
                                 }
@@ -203,7 +204,7 @@ fun ChangePasswordScreen(
                             label = { Text("Confirm New Password") },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.Lock,
+                                    painter = painterResource(R.drawable.ic_fa_lock),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -216,7 +217,9 @@ fun ChangePasswordScreen(
                             trailingIcon = {
                                 IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                                     Icon(
-                                        imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        painter = painterResource(
+                                            if (confirmPasswordVisible) R.drawable.ic_fa_eye else R.drawable.ic_fa_eye_slash
+                                        ),
                                         contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password"
                                     )
                                 }
