@@ -4,19 +4,14 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MonetizationOn
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.prantiux.milktick.R
@@ -24,7 +19,7 @@ import com.prantiux.milktick.navigation.Screen
 
 data class BottomNavItem(
     val route: String,
-    val icon: ImageVector,
+    @DrawableRes val iconRes: Int,
     val label: String
 )
 
@@ -34,11 +29,11 @@ fun BottomNavigation(
     onNavigate: (String) -> Unit
 ) {
     val items = listOf(
-        BottomNavItem(Screen.Home.route, Icons.Default.Home, stringResource(R.string.nav_home)),
-        BottomNavItem(Screen.Rate.route, Icons.Default.MonetizationOn, stringResource(R.string.nav_rate)),
-        BottomNavItem(Screen.Records.route, Icons.AutoMirrored.Filled.List, stringResource(R.string.nav_records)),
-        BottomNavItem(Screen.Summary.route, Icons.Default.Summarize, stringResource(R.string.nav_summary)),
-        BottomNavItem(Screen.Settings.route, Icons.Default.Settings, stringResource(R.string.nav_settings))
+        BottomNavItem(Screen.Home.route, R.drawable.ic_fa_house, stringResource(R.string.nav_home)),
+        BottomNavItem(Screen.Rate.route, R.drawable.ic_fa_coins, stringResource(R.string.nav_rate)),
+        BottomNavItem(Screen.Records.route, R.drawable.ic_fa_list, stringResource(R.string.nav_records)),
+        BottomNavItem(Screen.Summary.route, R.drawable.ic_fa_file_lines, stringResource(R.string.nav_summary)),
+        BottomNavItem(Screen.Settings.route, R.drawable.ic_fa_gear, stringResource(R.string.nav_settings))
     )
     
     NavigationBar(
@@ -89,7 +84,8 @@ fun BottomNavigation(
                         verticalArrangement = Arrangement.spacedBy(6.dp) // Increased gap between icon and text
                     ) {
                         Icon(
-                            imageVector = item.icon,
+                            modifier = Modifier.size(20.dp),
+                            painter = painterResource(item.iconRes),
                             contentDescription = item.label,
                             tint = iconColor // Animated color
                         )
