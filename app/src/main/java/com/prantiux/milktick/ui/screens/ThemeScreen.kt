@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
+import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,26 +39,8 @@ fun ThemeScreen(navController: NavController) {
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Theme & Appearance") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -71,11 +55,16 @@ fun ThemeScreen(navController: NavController) {
                 )
                 .padding(paddingValues)
         ) {
+            MilkTickSubpageSystemBarsGradient()
+            MilkTickSubpageFloatingHeader(
+                title = "Theme & Appearance",
+                onBackClick = { navController.navigateUp() }
+            )
+
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                contentPadding = PaddingValues(top = 144.dp, start = 20.dp, end = 20.dp, bottom = 20.dp)
             ) {
                 // Theme Mode Section
                 item {
@@ -237,7 +226,7 @@ fun ThemeSection(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(24.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -252,7 +241,7 @@ fun ThemeSection(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     ),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
