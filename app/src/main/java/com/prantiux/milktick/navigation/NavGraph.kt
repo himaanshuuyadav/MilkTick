@@ -20,9 +20,6 @@ fun NavGraph(
         composable(Screen.Home.route) {
             HomeScreen(navController = navController)
         }
-        composable(Screen.Rate.route) {
-            RateScreen(navController = navController)
-        }
         composable(Screen.Records.route) {
             RecordsScreen(navController = navController)
         }
