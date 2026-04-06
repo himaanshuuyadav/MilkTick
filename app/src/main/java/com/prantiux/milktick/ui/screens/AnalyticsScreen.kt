@@ -26,6 +26,8 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.prantiux.milktick.R
 import com.prantiux.milktick.viewmodel.AnalyticsViewModel
 import com.prantiux.milktick.viewmodel.AppViewModel
+import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -49,26 +51,8 @@ fun AnalyticsScreen(
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Data Analytics") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -83,6 +67,12 @@ fun AnalyticsScreen(
                 )
                 .padding(paddingValues)
         ) {
+            MilkTickSubpageSystemBarsGradient()
+            MilkTickSubpageFloatingHeader(
+                title = "Data Analytics",
+                onBackClick = { navController.navigateUp() }
+            )
+
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
@@ -91,7 +81,7 @@ fun AnalyticsScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(16.dp)
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 144.dp, bottom = 16.dp)
                 ) {
                     // Summary Cards
                     item {
@@ -221,7 +211,7 @@ fun ChartCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp)),
+            .clip(RoundedCornerShape(24.dp)),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
