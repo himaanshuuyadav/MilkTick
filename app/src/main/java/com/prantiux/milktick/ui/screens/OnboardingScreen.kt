@@ -99,7 +99,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                             .padding(horizontal = 4.dp)
                             .height(4.dp)
                             .width(if (index == currentPage) 32.dp else 16.dp)
-                            .clip(RoundedCornerShape(2.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(
                                 if (index == currentPage)
                                     MaterialTheme.colorScheme.primary
@@ -204,7 +204,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     modifier = Modifier
                         .height(56.dp)
                         .widthIn(min = 120.dp),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                     ),
@@ -398,7 +398,7 @@ fun PermissionPage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                 )
@@ -561,7 +561,7 @@ fun FeatureCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
         ),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(24.dp)
     ) {
         Column(
             modifier = Modifier
