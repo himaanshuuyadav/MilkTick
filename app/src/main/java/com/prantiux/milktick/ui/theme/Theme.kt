@@ -101,23 +101,17 @@ fun MilkTickTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            if (darkTheme) {
-                window.statusBarColor = colorScheme.secondary.toArgb() // Use #121212 for dark
-                window.navigationBarColor = colorScheme.secondary.toArgb()
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-                WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
-            } else {
-                window.statusBarColor = colorScheme.surface.toArgb() // Light gray for light
-                window.navigationBarColor = colorScheme.surface.toArgb()
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
-                WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
-            }
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = MilkTickShapes,
         content = content
     )
 }
