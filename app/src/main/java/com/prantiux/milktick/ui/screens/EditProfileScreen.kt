@@ -1,8 +1,6 @@
 package com.prantiux.milktick.ui.screens
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -11,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +27,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.prantiux.milktick.R
+import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
@@ -51,12 +53,6 @@ fun EditProfileScreen(
     
     // Check if any changes were made
     val hasChanges = displayName != originalDisplayName || profileImageUri != null
-    
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        profileImageUri = uri
-    }
     
     LaunchedEffect(user) {
         val name = user?.displayName ?: user?.email?.substringBefore("@") ?: ""
@@ -94,25 +90,8 @@ fun EditProfileScreen(
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Edit Profile") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -127,12 +106,21 @@ fun EditProfileScreen(
                 )
                 .padding(paddingValues)
         ) {
+            MilkTickSubpageSystemBarsGradient()
+            MilkTickSubpageFloatingHeader(
+                title = "Edit Profile",
+                onBackClick = { navController.popBackStack() }
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(start = 24.dp, end = 24.dp, bottom = 24.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                Spacer(modifier = Modifier.height(144.dp))
+
                 // Personal Information Section
                 Card(
                     modifier = Modifier.fillMaxWidth(),
