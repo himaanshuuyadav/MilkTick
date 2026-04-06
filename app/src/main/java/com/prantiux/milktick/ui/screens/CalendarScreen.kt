@@ -28,6 +28,9 @@ import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
 import com.prantiux.milktick.ui.components.SkeletonLoadingBox
+import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSubpageHeaderActionButton
+import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.CalendarUiState
 import com.prantiux.milktick.viewmodel.CalendarViewModel
@@ -75,81 +78,8 @@ fun CalendarScreen(
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text("$monthName $year")
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Box {
-                        IconButton(
-                            onClick = { showMonthMenu = true }
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_fa_ellipsis_vertical),
-                                contentDescription = "Options",
-                                tint = MaterialTheme.colorScheme.onSecondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        
-                        DropdownMenu(
-                            expanded = showMonthMenu,
-                            onDismissRequest = { showMonthMenu = false },
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.surface,
-                                    RoundedCornerShape(16.dp)
-                                )
-                                .clip(RoundedCornerShape(16.dp))
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Export Month Data") },
-                                leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_download),
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    showMonthMenu = false
-                                    showExportDialog = true
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Update Monthly Rate") },
-                                leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    showMonthMenu = false
-                                    showUpdateRateDialog = true
-                                }
-                            )
-                        }
-                    }
-                },
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                )),
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    titleContentColor = MaterialTheme.colorScheme.onSecondary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSecondary
-                )
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -304,6 +234,61 @@ fun CalendarScreen(
                     }
                 }
             } else {
+                MilkTickSubpageSystemBarsGradient()
+
+                MilkTickSubpageFloatingHeader(
+                    title = "$monthName $year",
+                    onBackClick = { navController.popBackStack() },
+                    actions = {
+                        Box {
+                            MilkTickSubpageHeaderActionButton(
+                                onClick = { showMonthMenu = true },
+                                contentDescription = "Options",
+                                painter = painterResource(R.drawable.ic_fa_ellipsis_vertical),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            DropdownMenu(
+                                expanded = showMonthMenu,
+                                onDismissRequest = { showMonthMenu = false },
+                                modifier = Modifier
+                                    .background(
+                                        MaterialTheme.colorScheme.surface,
+                                        RoundedCornerShape(16.dp)
+                                    )
+                                    .clip(RoundedCornerShape(16.dp))
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Export Month Data") },
+                                    leadingIcon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_fa_download),
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        showMonthMenu = false
+                                        showExportDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Update Monthly Rate") },
+                                    leadingIcon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_fa_pen_to_square),
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        showMonthMenu = false
+                                        showUpdateRateDialog = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+                )
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize(),
@@ -311,7 +296,7 @@ fun CalendarScreen(
                     contentPadding = PaddingValues(
                         start = 16.dp,
                         end = 16.dp,
-                        top = 16.dp,
+                        top = 144.dp,
                         bottom = 24.dp
                     )
                 ) {
@@ -1407,224 +1392,221 @@ fun exportMonthData(
         val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
         val milkTickDir = File(documentsDir, "MilkTick")
         if (!milkTickDir.exists()) {
-            milkTickDir.mkdirs()
-        }
-        
-        // Create CSV file with month name
-        val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-        val fileName = "${monthName}_${yearMonth.year}.csv"
-        val csvFile = File(milkTickDir, fileName)
-        
-        FileWriter(csvFile).use { writer ->
-            // Write CSV header
-            writer.append("Date,Quantity (L),Note,Status\n")
-            
-            // Write data for each day in the month
-            val daysInMonth = yearMonth.lengthOfMonth()
-            for (day in 1..daysInMonth) {
-                val date = yearMonth.atDay(day)
-                val entryDetail = entryDetailsMap[date]
-                
-                // Use text format to prevent #### in Excel
-                val dateStr = date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                val quantity = entryDetail?.quantity?.toString() ?: "0"
-                val note = entryDetail?.note?.replace(",", ";")?.replace("\n", " ") ?: ""
-                val status = if (entryDetail != null) "Delivered" else "Not Delivered"
-                
-                // Wrap date in quotes to force text format in Excel
-                writer.append("\"$dateStr\",$quantity,\"$note\",$status\n")
             }
-            
-            // Add payment information at the end
-            writer.append("\n")
-            writer.append("Payment Status,${if (isPaid) "Paid" else "Unpaid"},,\n")
-            if (paymentNote.isNotEmpty()) {
-                writer.append("Payment Note,\"${paymentNote.replace(",", ";").replace("\n", " ")}\",,\n")
-            }
-        }
-        
-        "Exported successfully to: ${csvFile.absolutePath}"
-    } catch (e: Exception) {
-        "Export failed: ${e.message}"
-    }
-}
 
-@Composable
-fun UpdateMonthlyRateDialog(
-    yearMonth: YearMonth,
-    userId: String,
-    currentRate: Float,
-    currentDefaultQuantity: Float,
-    onDismiss: () -> Unit,
-    onSave: (Float, Float) -> Unit
-) {
-    val repository = remember { FirestoreRepository() }
-    val scope = rememberCoroutineScope()
-    
-    var rateText by remember { mutableStateOf(if (currentRate > 0) currentRate.toString() else "") }
-    var defaultQtyText by remember { mutableStateOf(if (currentDefaultQuantity > 0) currentDefaultQuantity.toString() else "") }
-    var isSaving by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    
-    val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-    
-    AlertDialog(
-        onDismissRequest = { if (!isSaving) onDismiss() },
-        title = {
-            Column {
-                Text(
-                    "Update Monthly Rate",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "$monthName ${yearMonth.year}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // Create CSV file with month name
+            val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+            val fileName = "${monthName}_${yearMonth.year}.csv"
+            val csvFile = File(milkTickDir, fileName)
+
+            FileWriter(csvFile).use { writer ->
+                // Write CSV header
+                writer.append("Date,Quantity (L),Note,Status\n")
+
+                // Write data for each day in the month
+                val daysInMonth = yearMonth.lengthOfMonth()
+                for (day in 1..daysInMonth) {
+                    val date = yearMonth.atDay(day)
+                    val entryDetail = entryDetailsMap[date]
+
+                    // Use text format to prevent #### in Excel
+                    val dateStr = date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    val quantity = entryDetail?.quantity?.toString() ?: "0"
+                    val note = entryDetail?.note?.replace(",", ";")?.replace("\n", " ") ?: ""
+                    val status = if (entryDetail != null) "Delivered" else "Not Delivered"
+
+                    // Wrap date in quotes to force text format in Excel
+                    writer.append("\"$dateStr\",$quantity,\"$note\",$status\n")
+                }
+
+                // Add payment information at the end
+                writer.append("\n")
+                writer.append("Payment Status,${if (isPaid) "Paid" else "Unpaid"},,\n")
+                if (paymentNote.isNotEmpty()) {
+                    writer.append("Payment Note,\"${paymentNote.replace(",", ";").replace("\n", " ") }\",,\n")
+                }
             }
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                // Rate per Liter Field
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AnimatedVisibility(
-                        visible = rateText.isNotEmpty(),
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Text(
-                            "Milk Rate Per Liter",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
-                    OutlinedTextField(
-                        value = rateText,
-                        onValueChange = { 
-                            rateText = it
-                            errorMessage = null
-                        },
-                        label = { Text("Milk Rate Per Liter") },
-                        placeholder = { Text("Enter rate in rupees") },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_fa_indian_rupee_sign),
-                                contentDescription = null
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !isSaving,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                }
-                
-                // Default Quantity Field
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AnimatedVisibility(
-                        visible = defaultQtyText.isNotEmpty(),
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Text(
-                            "Default Quantity",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
-                    OutlinedTextField(
-                        value = defaultQtyText,
-                        onValueChange = { 
-                            defaultQtyText = it
-                            errorMessage = null
-                        },
-                        label = { Text("Default Quantity") },
-                        placeholder = { Text("Enter quantity in liters") },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_fa_glass_water),
-                                contentDescription = null
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !isSaving,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                }
-                
-                if (errorMessage != null) {
+
+            "Exported successfully to: ${csvFile.absolutePath}"
+        } catch (e: Exception) {
+            "Export failed: ${e.message}"
+        }
+    }
+
+    @Composable
+    fun UpdateMonthlyRateDialog(
+        yearMonth: YearMonth,
+        userId: String,
+        currentRate: Float,
+        currentDefaultQuantity: Float,
+        onDismiss: () -> Unit,
+        onSave: (Float, Float) -> Unit
+    ) {
+        val repository = remember { FirestoreRepository() }
+        val scope = rememberCoroutineScope()
+
+        var rateText by remember { mutableStateOf(if (currentRate > 0) currentRate.toString() else "") }
+        var defaultQtyText by remember { mutableStateOf(if (currentDefaultQuantity > 0) currentDefaultQuantity.toString() else "") }
+        var isSaving by remember { mutableStateOf(false) }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+
+        val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+
+        AlertDialog(
+            onDismissRequest = { if (!isSaving) onDismiss() },
+            title = {
+                Column {
                     Text(
-                        errorMessage!!,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
+                        "Update Monthly Rate",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "$monthName ${yearMonth.year}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val rate = rateText.toFloatOrNull()
-                    val defaultQty = defaultQtyText.toFloatOrNull()
-                    
-                    when {
-                        rate == null || rate <= 0 -> {
-                            errorMessage = "Please enter a valid rate"
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AnimatedVisibility(
+                            visible = rateText.isNotEmpty(),
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Text(
+                                "Milk Rate Per Liter",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
-                        defaultQty == null || defaultQty <= 0 -> {
-                            errorMessage = "Please enter a valid quantity"
+
+                        OutlinedTextField(
+                            value = rateText,
+                            onValueChange = {
+                                rateText = it
+                                errorMessage = null
+                            },
+                            label = { Text("Milk Rate Per Liter") },
+                            placeholder = { Text("Enter rate in rupees") },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_fa_indian_rupee_sign),
+                                    contentDescription = null
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = !isSaving,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                    }
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AnimatedVisibility(
+                            visible = defaultQtyText.isNotEmpty(),
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Text(
+                                "Default Quantity",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
-                        else -> {
-                            isSaving = true
-                            scope.launch {
-                                try {
-                                    val monthlyRate = com.prantiux.milktick.data.MonthlyRate(
-                                        yearMonth = yearMonth,
-                                        ratePerLiter = rate,
-                                        defaultQuantity = defaultQty,
-                                        userId = userId
-                                    )
-                                    repository.saveMonthlyRate(monthlyRate)
-                                    onSave(rate, defaultQty)
-                                } catch (e: Exception) {
-                                    errorMessage = "Failed to save: ${e.message}"
-                                    isSaving = false
+
+                        OutlinedTextField(
+                            value = defaultQtyText,
+                            onValueChange = {
+                                defaultQtyText = it
+                                errorMessage = null
+                            },
+                            label = { Text("Default Quantity") },
+                            placeholder = { Text("Enter quantity in liters") },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_fa_glass_water),
+                                    contentDescription = null
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = !isSaving,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                    }
+
+                    if (errorMessage != null) {
+                        Text(
+                            errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val rate = rateText.toFloatOrNull()
+                        val defaultQty = defaultQtyText.toFloatOrNull()
+
+                        when {
+                            rate == null || rate <= 0 -> {
+                                errorMessage = "Please enter a valid rate"
+                            }
+                            defaultQty == null || defaultQty <= 0 -> {
+                                errorMessage = "Please enter a valid quantity"
+                            }
+                            else -> {
+                                isSaving = true
+                                scope.launch {
+                                    try {
+                                        val monthlyRate = com.prantiux.milktick.data.MonthlyRate(
+                                            yearMonth = yearMonth,
+                                            ratePerLiter = rate,
+                                            defaultQuantity = defaultQty,
+                                            userId = userId
+                                        )
+                                        repository.saveMonthlyRate(monthlyRate)
+                                        onSave(rate, defaultQty)
+                                    } catch (e: Exception) {
+                                        errorMessage = "Failed to save: ${e.message}"
+                                        isSaving = false
+                                    }
                                 }
                             }
                         }
+                    },
+                    enabled = !isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(Modifier.width(12.dp))
                     }
-                },
-                enabled = !isSaving,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
+                    Text(
+                        if (isSaving) "Saving..." else "Save",
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(vertical = 4.dp)
                     )
-                    Spacer(Modifier.width(12.dp))
                 }
-                Text(
-                    if (isSaving) "Saving..." else "Save",
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-            }
-        },
-        dismissButton = null
-    )
-}
+            },
+            dismissButton = null
+        )
+    }
