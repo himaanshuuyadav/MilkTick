@@ -136,7 +136,7 @@ fun MilkTickApp(intent: Intent? = null) {
     LaunchedEffect(intent) {
         intent?.getStringExtra("navigate_to")?.let { destination ->
             when (destination) {
-                "rates" -> navController.navigate(Screen.Rate.route)
+                "rates" -> navController.navigate(Screen.Home.route)
                 "home" -> navController.navigate(Screen.Home.route)
             }
         }
@@ -146,38 +146,27 @@ fun MilkTickApp(intent: Intent? = null) {
         is AuthState.Authenticated -> "home"
         else -> "auth"
     }
+
+    // Define main tab routes
+    val mainTabRoutes = listOf(
+        Screen.Home.route,
+        Screen.Records.route,
+        Screen.Summary.route,
+        Screen.Settings.route
+    )
     
     // Get current route to determine if we should show bottom navigation
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     
-    // Status bar color management
+    // Transparent system bars globally (edge-to-edge)
     LaunchedEffect(currentRoute) {
         val window = (view.context as ComponentActivity).window
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        
-        when (currentRoute) {
-            "auth" -> {
-                // Black status bar for auth screen
-                window.statusBarColor = Color.Black.toArgb()
-                window.navigationBarColor = Color.Black.toArgb()
-            }
-            else -> {
-                // Dark gray for other screens
-                window.statusBarColor = Color(0xFF121212).toArgb()
-                window.navigationBarColor = Color(0xFF121212).toArgb()
-            }
-        }
+        window.statusBarColor = Color.Transparent.toArgb()
+        window.navigationBarColor = Color.Transparent.toArgb()
+        window.isNavigationBarContrastEnforced = false
     }
-    
-    // Define main tab routes
-    val mainTabRoutes = listOf(
-        Screen.Home.route,
-        Screen.Rate.route,
-        Screen.Records.route,
-        Screen.Summary.route,
-        Screen.Settings.route
-    )
     
     val shouldShowBottomNav = currentRoute in mainTabRoutes
     
