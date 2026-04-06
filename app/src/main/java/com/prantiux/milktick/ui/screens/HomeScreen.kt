@@ -3,23 +3,31 @@ package com.prantiux.milktick.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
-import com.prantiux.milktick.navigation.Screen
+import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
 import com.prantiux.milktick.ui.components.SkeletonHomeWelcomeCard
 import com.prantiux.milktick.ui.components.SkeletonHomeMilkCard
 import com.prantiux.milktick.viewmodel.AuthViewModel
@@ -37,9 +45,22 @@ fun HomeScreen(
     appViewModel: AppViewModel = viewModel(),
     homeViewModel: HomeViewModel = viewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val uiState by homeViewModel.uiState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
     val isAppInitialized by appViewModel.isAppInitialized.collectAsState()
+    val listState = rememberLazyListState()
+    var showRateSheet by remember { mutableStateOf(false) }
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val shouldOpenRateFromIntent = (context as? ComponentActivity)?.intent?.getStringExtra("navigate_to") == "rates"
+    val rateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(shouldOpenRateFromIntent) {
+        if (shouldOpenRateFromIntent) {
+            showRateSheet = true
+            (context as? ComponentActivity)?.intent?.removeExtra("navigate_to")
+        }
+    }
     
     // Only load data once when app initializes
     LaunchedEffect(currentUser) {
@@ -57,23 +78,10 @@ fun HomeScreen(
             homeViewModel.clearMessage()
         }
     }
-    
+
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.home_title)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -88,18 +96,20 @@ fun HomeScreen(
                 )
                 .padding(paddingValues)
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp)
-                    .padding(bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .padding(horizontal = 24.dp),
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                contentPadding = PaddingValues(top = 144.dp, bottom = 220.dp)
             ) {
+                item {
                 // Welcome header
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp)),
+                        .clip(RoundedCornerShape(24.dp)),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                     ),
@@ -133,12 +143,14 @@ fun HomeScreen(
                         )
                     }
                 }
+                }
                 
+                item {
                 // Milk tracking card
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp)),
+                        .clip(RoundedCornerShape(24.dp)),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),
@@ -329,7 +341,8 @@ fun HomeScreen(
                                                 label = { Text(stringResource(R.string.note)) },
                                                 placeholder = { Text(stringResource(R.string.note_hint)) },
                                                 modifier = Modifier.fillMaxWidth(),
-                                                minLines = 3,
+                                                minLines = 1,
+                                                maxLines = 6,
                                                 shape = RoundedCornerShape(16.dp),
                                                 colors = OutlinedTextFieldDefaults.colors(
                                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -427,117 +440,181 @@ fun HomeScreen(
                         }
                     }
                 }
+                }
                 
-                Spacer(modifier = Modifier.weight(1f))
-                
-                // Save button - show only when needed
-                when (uiState.saveButtonState) {
-                    SaveButtonState.SAVE -> {
-                        // Debug logging for button visibility
-                        android.util.Log.d("HomeScreen", "Button conditions - brought: ${uiState.brought}, isEditMode: ${uiState.isEditMode}, hasEntryToday: ${uiState.hasEntryToday}")
-                        
-                        val shouldShowButton = (uiState.brought && (uiState.isEditMode || !uiState.hasEntryToday)) || 
-                                             (!uiState.brought && uiState.isEditMode && uiState.hasEntryToday)
-                        
-                        android.util.Log.d("HomeScreen", "Should show button: $shouldShowButton")
-                        
-                        if (shouldShowButton) {
-                            Button(
-                                onClick = { 
-                                    android.util.Log.d("HomeScreen", "Button clicked - will call saveMilkEntry")
-                                    currentUser?.uid?.let { userId ->
-                                        homeViewModel.saveMilkEntry(userId)
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp),
-                                enabled = if (uiState.brought) uiState.quantity > 0 else true,
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (!uiState.brought && uiState.isEditMode) 
-                                        MaterialTheme.colorScheme.error 
-                                    else 
-                                        MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Text(
-                                    text = if (!uiState.brought && uiState.isEditMode && uiState.hasEntryToday) {
-                                        "Remove Entry"
-                                    } else if (uiState.isEditMode) {
-                                        "Update"
-                                    } else {
-                                        stringResource(R.string.save)
-                                    },
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
+                item { Spacer(modifier = Modifier.height(1.dp)) }
+            }
+
+            MilkTickSystemBarsGradient()
+
+            HomeSaveActionBar(
+                uiState = uiState,
+                bottomInset = bottomInset,
+                onSave = {
+                    currentUser?.uid?.let { userId ->
+                        homeViewModel.saveMilkEntry(userId)
                     }
-                    SaveButtonState.LOADING -> {
-                        Button(
-                            onClick = { },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            enabled = false,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp
-                            )
-                        }
+                }
+            )
+
+            MilkTickFloatingHeader(
+                title = stringResource(R.string.home_title),
+                scrollState = listState,
+                actions = {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                            .clickable { showRateSheet = true }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_fa_coins),
+                            contentDescription = "Monthly Rate",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Monthly Rate",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
-                    SaveButtonState.SAVED -> {
-                        Button(
-                            onClick = { },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            enabled = false,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiary
-                            )
-                        ) {
-                            Text(
-                                text = "Saved ✓",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                    SaveButtonState.REMOVED -> {
-                        Button(
-                            onClick = { },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            enabled = false,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Text(
-                                text = "Entry Removed ✓",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onError
-                            )
-                        }
-                    }
-                    SaveButtonState.HIDDEN -> {
-                        // No button shown
-                    }
+                }
+            )
+
+            if (showRateSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showRateSheet = false },
+                    sheetState = rateSheetState,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                ) {
+                    RateEditorContent(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        bottomSpacing = 16.dp
+                    )
                 }
             }
         }
     }
 } 
+
+@Composable
+private fun BoxScope.HomeSaveActionBar(
+    uiState: com.prantiux.milktick.viewmodel.HomeUiState,
+    bottomInset: Dp,
+    onSave: () -> Unit
+) {
+    val shouldShowSaveButton = (uiState.brought && (uiState.isEditMode || !uiState.hasEntryToday)) ||
+        (!uiState.brought && uiState.isEditMode && uiState.hasEntryToday)
+
+    val shouldRender = when (uiState.saveButtonState) {
+        SaveButtonState.SAVE, SaveButtonState.UPDATE, SaveButtonState.REMOVE -> shouldShowSaveButton
+        SaveButtonState.LOADING, SaveButtonState.LOADING_UPDATE, SaveButtonState.LOADING_REMOVE,
+        SaveButtonState.SAVED, SaveButtonState.UPDATED, SaveButtonState.REMOVED -> true
+        SaveButtonState.HIDDEN -> false
+    }
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(durationMillis = 140, easing = FastOutSlowInEasing),
+        label = "homeSaveButtonPress"
+    )
+    val buttonBaseModifier = Modifier
+        .align(Alignment.Center)
+        .fillMaxWidth(0.72f)
+        .height(56.dp)
+        .graphicsLayer {
+            scaleX = animatedScale
+            scaleY = animatedScale
+        }
+
+    Box(
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .padding(horizontal = 24.dp)
+            .padding(bottom = bottomInset + 84.dp)
+    ) {
+        AnimatedVisibility(
+            visible = shouldRender,
+            enter = slideInVertically(
+                animationSpec = tween(300),
+                initialOffsetY = { it }
+            ) + fadeIn(animationSpec = tween(300)),
+            exit = slideOutVertically(
+                animationSpec = tween(300),
+                targetOffsetY = { it }
+            ) + fadeOut(animationSpec = tween(300))
+        ) {
+            Button(
+                onClick = onSave,
+                modifier = buttonBaseModifier,
+                interactionSource = interactionSource,
+                enabled = when (uiState.saveButtonState) {
+                    SaveButtonState.SAVE -> if (uiState.brought) uiState.quantity > 0 else true
+                    SaveButtonState.UPDATE -> uiState.quantity > 0
+                    SaveButtonState.REMOVE -> true
+                    else -> false
+                },
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = when (uiState.saveButtonState) {
+                        SaveButtonState.REMOVE, SaveButtonState.LOADING_REMOVE, SaveButtonState.REMOVED -> MaterialTheme.colorScheme.error
+                        SaveButtonState.SAVED, SaveButtonState.UPDATED -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    disabledContainerColor = when (uiState.saveButtonState) {
+                        SaveButtonState.REMOVE, SaveButtonState.LOADING_REMOVE, SaveButtonState.REMOVED -> MaterialTheme.colorScheme.error
+                        SaveButtonState.SAVED, SaveButtonState.UPDATED -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                    }
+                )
+            ) {
+                AnimatedContent(
+                    targetState = uiState.saveButtonState,
+                    transitionSpec = {
+                        slideInVertically(
+                            animationSpec = tween(220),
+                            initialOffsetY = { fullHeight -> -fullHeight / 2 }
+                        ) + fadeIn(animationSpec = tween(220)) togetherWith
+                            slideOutVertically(
+                                animationSpec = tween(220),
+                                targetOffsetY = { fullHeight -> fullHeight / 2 }
+                            ) + fadeOut(animationSpec = tween(220))
+                    },
+                    label = "home_button_content"
+                ) { state ->
+                    Text(
+                        text = when (state) {
+                            SaveButtonState.SAVE -> "Save"
+                            SaveButtonState.UPDATE -> "Update"
+                            SaveButtonState.REMOVE -> "Remove Entry"
+                            SaveButtonState.LOADING -> "Saving..."
+                            SaveButtonState.LOADING_UPDATE -> "Updating..."
+                            SaveButtonState.LOADING_REMOVE -> "Removing..."
+                            SaveButtonState.SAVED -> "Saved!"
+                            SaveButtonState.UPDATED -> "Updated!"
+                            SaveButtonState.REMOVED -> "Removed!"
+                            SaveButtonState.HIDDEN -> ""
+                        },
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when (state) {
+                            SaveButtonState.REMOVED, SaveButtonState.LOADING_REMOVE -> MaterialTheme.colorScheme.onError
+                            else -> MaterialTheme.colorScheme.onPrimary
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
