@@ -3,7 +3,6 @@ package com.prantiux.milktick.navigation
 sealed class Screen(val route: String) {
     data object Auth : Screen("auth")
     data object Home : Screen("home")
-    data object Rate : Screen("rate")
     data object Records : Screen("records")
     data object Summary : Screen("summary")
     data object Settings : Screen("settings")
