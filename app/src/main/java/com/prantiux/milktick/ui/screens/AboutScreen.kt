@@ -17,31 +17,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
+import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(navController: NavController) {
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("About MilkTick") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -56,19 +40,23 @@ fun AboutScreen(navController: NavController) {
                 )
                 .padding(paddingValues)
         ) {
+            MilkTickSubpageSystemBarsGradient()
+            MilkTickSubpageFloatingHeader(
+                title = "About MilkTick",
+                onBackClick = { navController.popBackStack() }
+            )
+
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
+                contentPadding = PaddingValues(top = 144.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
             ) {
                 // App Icon and Name
                 item {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(RoundedCornerShape(24.dp)),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
@@ -134,7 +122,7 @@ fun AboutScreen(navController: NavController) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(RoundedCornerShape(24.dp)),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
@@ -181,7 +169,7 @@ fun AboutScreen(navController: NavController) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(RoundedCornerShape(24.dp)),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
@@ -256,7 +244,7 @@ fun AboutScreen(navController: NavController) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(RoundedCornerShape(24.dp)),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
@@ -300,7 +288,7 @@ fun AboutScreen(navController: NavController) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(RoundedCornerShape(24.dp)),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
