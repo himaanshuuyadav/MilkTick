@@ -42,7 +42,7 @@ fun ModernLogoutDialog(
                         .size(64.dp)
                         .background(
                             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(32.dp)
+                            shape = RoundedCornerShape(24.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
