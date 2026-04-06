@@ -33,7 +33,14 @@ class RateViewModel : ViewModel() {
     
     fun saveRate(userId: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, saveButtonState = SaveButtonState.LOADING)
+            val currentState = _uiState.value
+            val loadingState = if (currentState.saveButtonState == SaveButtonState.UPDATE || currentState.hasData) {
+                SaveButtonState.LOADING_UPDATE
+            } else {
+                SaveButtonState.LOADING
+            }
+
+            _uiState.value = _uiState.value.copy(saveButtonState = loadingState)
             
             val rate = MonthlyRate(
                 yearMonth = _uiState.value.selectedYearMonth,
@@ -48,7 +55,11 @@ class RateViewModel : ViewModel() {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     message = "Rate saved successfully",
-                    saveButtonState = SaveButtonState.SAVED,
+                    saveButtonState = if (loadingState == SaveButtonState.LOADING_UPDATE) {
+                        SaveButtonState.UPDATED
+                    } else {
+                        SaveButtonState.SAVED
+                    },
                     isEditMode = false,
                     hasData = true
                 )
@@ -60,7 +71,11 @@ class RateViewModel : ViewModel() {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     message = "Error saving rate",
-                    saveButtonState = SaveButtonState.SAVE
+                    saveButtonState = if (loadingState == SaveButtonState.LOADING_UPDATE) {
+                        SaveButtonState.UPDATE
+                    } else {
+                        SaveButtonState.SAVE
+                    }
                 )
             }
         }
@@ -69,7 +84,7 @@ class RateViewModel : ViewModel() {
     fun enableEditMode() {
         _uiState.value = _uiState.value.copy(
             isEditMode = true,
-            saveButtonState = SaveButtonState.SAVE
+            saveButtonState = if (_uiState.value.hasData) SaveButtonState.UPDATE else SaveButtonState.SAVE
         )
     }
     
@@ -85,10 +100,15 @@ class RateViewModel : ViewModel() {
         viewModelScope.launch {
             val userId = _uiState.value.currentUserId
             if (userId.isNotBlank()) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = true,
+                    saveButtonState = SaveButtonState.HIDDEN
+                )
                 val rate = firestoreRepository.getMonthlyRate(userId, _uiState.value.selectedYearMonth)
                 val hasExistingData = rate != null && rate.ratePerLiter > 0
                 
                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
                     rate = rate?.ratePerLiter ?: 0f,
                     rateText = if (rate?.ratePerLiter != null && rate.ratePerLiter > 0) rate.ratePerLiter.toString() else "",
                     defaultQuantity = rate?.defaultQuantity ?: 0f,
@@ -118,9 +138,9 @@ data class RateUiState(
     val defaultQuantity: Float = 0f,
     val defaultQuantityText: String = "",
     val currentUserId: String = "",
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val message: String? = null,
     val hasData: Boolean = false,
-    val isEditMode: Boolean = true, // Start in edit mode for new data
-    val saveButtonState: SaveButtonState = SaveButtonState.SAVE
+    val isEditMode: Boolean = false,
+    val saveButtonState: SaveButtonState = SaveButtonState.HIDDEN
 ) 
