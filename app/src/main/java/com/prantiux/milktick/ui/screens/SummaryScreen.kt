@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +23,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
+import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
 import com.prantiux.milktick.ui.components.SkeletonSummaryMonthCard
 import com.prantiux.milktick.ui.components.SkeletonSummaryStatsRow
 import com.prantiux.milktick.ui.components.SkeletonSummaryTotalAmountCard
@@ -46,6 +49,7 @@ fun SummaryScreen(
     val currentUserId by appViewModel.currentUserId.collectAsState()
     val dataRefreshTrigger by appViewModel.dataRefreshTrigger.collectAsState()
     val context = LocalContext.current
+    val listState = rememberLazyListState()
     
     LaunchedEffect(currentUser) {
         currentUser?.uid?.let { userId ->
@@ -77,21 +81,8 @@ fun SummaryScreen(
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.summary_title)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -108,21 +99,18 @@ fun SummaryScreen(
         ) {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(20.dp),
-                contentPadding = PaddingValues(
-                    start = 20.dp,
-                    end = 20.dp,
-                    top = 20.dp,
-                    bottom = 100.dp
-                )
+                contentPadding = PaddingValues(top = 144.dp, bottom = 100.dp)
             ) {
                 item {
                     // Month/Year Header Card
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(RoundedCornerShape(24.dp)),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                         ),
@@ -223,7 +211,7 @@ fun SummaryScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(RoundedCornerShape(24.dp)),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
                             ),
@@ -396,6 +384,23 @@ fun SummaryScreen(
                     }
                 }
             }
+
+            MilkTickSystemBarsGradient()
+
+            MilkTickFloatingHeader(
+                title = stringResource(R.string.summary_title),
+                scrollState = listState,
+                actions = {
+                    IconButton(onClick = { summaryViewModel.exportToCsv(context) }) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_fa_download),
+                            contentDescription = stringResource(R.string.export_data),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            )
         }
     }
 }
@@ -413,7 +418,7 @@ fun ModernSummaryCard(
     Card(
         modifier = modifier.height(120.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor.copy(alpha = 0.4f)),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
