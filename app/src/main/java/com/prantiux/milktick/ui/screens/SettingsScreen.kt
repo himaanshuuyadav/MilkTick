@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -21,9 +22,19 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
+import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
 import com.prantiux.milktick.ui.components.ModernLogoutDialog
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.AppViewModel
+
+private data class SettingsEntry(
+    val icon: Int,
+    val title: String,
+    val subtitle: String,
+    val isDanger: Boolean = false,
+    val onClick: () -> Unit
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +46,50 @@ fun SettingsScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     val currentUser by authViewModel.currentUser.collectAsState()
     @Suppress("UNUSED_VARIABLE") val currentUserId by appViewModel.currentUserId.collectAsState()
+    val listState = rememberLazyListState()
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    val settingsEntries = remember(navController) {
+        listOf(
+            SettingsEntry(
+                icon = R.drawable.ic_fa_user,
+                title = "Edit Profile",
+                subtitle = "Update your personal information",
+                onClick = { navController.navigate(Screen.EditProfile.route) }
+            ),
+            SettingsEntry(
+                icon = R.drawable.ic_fa_lock,
+                title = "Change Password",
+                subtitle = "Update your account password",
+                onClick = { navController.navigate(Screen.ChangePassword.route) }
+            ),
+            SettingsEntry(
+                icon = R.drawable.ic_fa_bell,
+                title = "Notifications",
+                subtitle = "Manage your notification preferences",
+                onClick = { navController.navigate(Screen.NotificationSettings.route) }
+            ),
+            SettingsEntry(
+                icon = R.drawable.ic_fa_circle_info,
+                title = "Theme",
+                subtitle = "Customize appearance and colors",
+                onClick = { navController.navigate(Screen.Theme.route) }
+            ),
+            SettingsEntry(
+                icon = R.drawable.ic_fa_circle_info,
+                title = "About MilkTick",
+                subtitle = "App version and information",
+                onClick = { navController.navigate(Screen.About.route) }
+            ),
+            SettingsEntry(
+                icon = R.drawable.ic_fa_right_from_bracket,
+                title = "Sign Out",
+                subtitle = "Sign out of your account",
+                isDanger = true,
+                onClick = { showLogoutDialog = true }
+            )
+        )
+    }
     
     LaunchedEffect(currentUser) {
         currentUser?.uid?.let { userId ->
@@ -44,21 +98,8 @@ fun SettingsScreen(
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -75,14 +116,11 @@ fun SettingsScreen(
         ) {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(20.dp),
-                contentPadding = PaddingValues(
-                    start = 24.dp,
-                    end = 24.dp,
-                    top = 24.dp,
-                    bottom = 24.dp
-                )
+                contentPadding = PaddingValues(top = 144.dp, bottom = 120.dp)
             ) {
                 item {
                     // Profile Section - Without Edit Button
@@ -92,102 +130,36 @@ fun SettingsScreen(
                 }
                 
                 item {
-                    // Settings List
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp)),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(4.dp)
-                        ) {
-                            // Edit Profile
-                            SettingsItem(
-                                icon = R.drawable.ic_fa_user,
-                                title = "Edit Profile",
-                                subtitle = "Update your personal information"
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        settingsEntries.forEachIndexed { index, entry ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                shape = groupedSettingsCardShape(index = index, lastIndex = settingsEntries.lastIndex),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
-                                navController.navigate(Screen.EditProfile.route)
-                            }
-                            
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
-                            
-                            // Change Password
-                            SettingsItem(
-                                icon = R.drawable.ic_fa_lock,
-                                title = "Change Password",
-                                subtitle = "Update your account password"
-                            ) {
-                                navController.navigate(Screen.ChangePassword.route)
-                            }
-                            
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
-                            
-                            // Notifications
-                            SettingsItem(
-                                icon = R.drawable.ic_fa_bell,
-                                title = "Notifications",
-                                subtitle = "Manage your notification preferences"
-                            ) {
-                                navController.navigate(Screen.NotificationSettings.route)
-                            }
-                            
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
-                            
-                            // Theme
-                            SettingsItem(
-                                icon = R.drawable.ic_fa_circle_info,
-                                title = "Theme",
-                                subtitle = "Customize appearance and colors"
-                            ) {
-                                navController.navigate(Screen.Theme.route)
-                            }
-                            
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
-                            
-                            // About
-                            SettingsItem(
-                                icon = R.drawable.ic_fa_circle_info,
-                                title = "About MilkTick",
-                                subtitle = "App version and information"
-                            ) {
-                                navController.navigate(Screen.About.route)
-                            }
-                            
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
-                            
-                            // Sign Out
-                            SettingsItem(
-                                icon = R.drawable.ic_fa_right_from_bracket,
-                                title = "Sign Out",
-                                subtitle = "Sign out of your account",
-                                isDanger = true
-                            ) {
-                                showLogoutDialog = true
+                                SettingsItem(
+                                    icon = entry.icon,
+                                    title = entry.title,
+                                    subtitle = entry.subtitle,
+                                    isDanger = entry.isDanger,
+                                    onClick = entry.onClick
+                                )
                             }
                         }
                     }
                 }
             }
+
+            MilkTickSystemBarsGradient()
+
+            MilkTickFloatingHeader(
+                title = "Settings",
+                scrollState = listState
+            )
         }
         
         // Modern Logout Dialog
@@ -223,7 +195,7 @@ fun SimpleProfileCard(userEmail: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp)),
+            .clip(RoundedCornerShape(24.dp)),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -291,7 +263,6 @@ fun SettingsItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -326,5 +297,13 @@ fun SettingsItem(
             )
         }
         
+    }
+}
+
+private fun groupedSettingsCardShape(index: Int, lastIndex: Int): RoundedCornerShape {
+    return when {
+        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
+        index == lastIndex -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        else -> RoundedCornerShape(8.dp)
     }
 }
