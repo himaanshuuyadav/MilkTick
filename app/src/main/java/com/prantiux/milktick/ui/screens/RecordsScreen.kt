@@ -4,7 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -25,6 +26,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
+import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
 import com.prantiux.milktick.ui.components.SkeletonRecordsMonthCard
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.RecordsViewModel
@@ -45,6 +48,7 @@ fun RecordsScreen(
     val currentUser by authViewModel.currentUser.collectAsState()
     val currentUserId by appViewModel.currentUserId.collectAsState()
     val dataRefreshTrigger by appViewModel.dataRefreshTrigger.collectAsState()
+    val listState = rememberLazyListState()
     
     var showYearDropdown by remember { mutableStateOf(false) }
     var showExportMenu by remember { mutableStateOf(false) }
@@ -72,63 +76,8 @@ fun RecordsScreen(
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.records_title)) },
-                actions = {
-                    Box {
-                        IconButton(onClick = { showExportMenu = true }) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_fa_ellipsis_vertical),
-                                contentDescription = "Menu",
-                                tint = MaterialTheme.colorScheme.onSecondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        
-                        DropdownMenu(
-                            expanded = showExportMenu,
-                            onDismissRequest = { showExportMenu = false },
-                            modifier = Modifier
-                                .background(
-                                    color = MaterialTheme.colorScheme.surface,
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                                .clip(RoundedCornerShape(16.dp))
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "Export ${uiState.selectedYear} Data",
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                },
-                                onClick = {
-                                    showExportMenu = false
-                                    showExportDialog = true
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_download),
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -143,17 +92,20 @@ fun RecordsScreen(
                 )
                 .padding(paddingValues)
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .padding(horizontal = 24.dp),
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = PaddingValues(top = 144.dp, bottom = 120.dp)
             ) {
+                item {
                 // Year selector card
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp)),
+                        .clip(RoundedCornerShape(24.dp)),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),
@@ -162,7 +114,7 @@ fun RecordsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -242,42 +194,87 @@ fun RecordsScreen(
                         }
                     }
                 }
-                
-                // Months list
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 if (uiState.isLoading) {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp)
-                    ) {
-                        items(6) {
-                            SkeletonRecordsMonthCard()
-                        }
+                    items(6) {
+                        SkeletonRecordsMonthCard()
                     }
                 } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp)
-                    ) {
-                        items(Month.values().toList()) { month ->
-                            MonthCard(
-                                month = month,
-                                year = uiState.selectedYear,
-                                summaryData = uiState.monthlySummaries.find { summary ->
-                                    summary.yearMonth.monthValue == month.value
+                    val months = Month.values().toList()
+                    itemsIndexed(months) { index, month ->
+                        MonthCard(
+                            month = month,
+                            year = uiState.selectedYear,
+                            cardShape = groupedCardShape(index = index, lastIndex = months.lastIndex),
+                            summaryData = uiState.monthlySummaries.find { summary ->
+                                summary.yearMonth.monthValue == month.value
+                            },
+                            onMonthClick = { selectedMonth ->
+                                navController.navigate(
+                                    Screen.Calendar.createRoute(
+                                        year = uiState.selectedYear,
+                                        month = selectedMonth.value
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            MilkTickSystemBarsGradient()
+
+            MilkTickFloatingHeader(
+                title = stringResource(R.string.records_title),
+                scrollState = listState,
+                actions = {
+                    Box {
+                        IconButton(onClick = { showExportMenu = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_fa_ellipsis_vertical),
+                                contentDescription = "Menu",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showExportMenu,
+                            onDismissRequest = { showExportMenu = false },
+                            modifier = Modifier
+                                .background(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clip(RoundedCornerShape(16.dp))
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Export ${uiState.selectedYear} Data",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
                                 },
-                                onMonthClick = { selectedMonth ->
-                                    navController.navigate(
-                                        Screen.Calendar.createRoute(
-                                            year = uiState.selectedYear,
-                                            month = selectedMonth.value
-                                        )
+                                onClick = {
+                                    showExportMenu = false
+                                    showExportDialog = true
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_fa_download),
+                                        contentDescription = null
                                     )
                                 }
                             )
                         }
                     }
                 }
-            }
+            )
         }
         
         // Export Year Data Dialog
@@ -322,14 +319,15 @@ fun RecordsScreen(
 fun MonthCard(
     month: Month,
     @Suppress("UNUSED_PARAMETER") year: Int,
+    cardShape: RoundedCornerShape,
     summaryData: com.prantiux.milktick.viewmodel.MonthlySummaryData?,
     onMonthClick: (Month) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
             .clickable { onMonthClick(month) },
+        shape = cardShape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -384,10 +382,18 @@ fun MonthCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
         }
+    }
+}
+
+private fun groupedCardShape(index: Int, lastIndex: Int): RoundedCornerShape {
+    return when {
+        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
+        index == lastIndex -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        else -> RoundedCornerShape(8.dp)
     }
 }
 
