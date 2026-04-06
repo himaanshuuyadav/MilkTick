@@ -33,12 +33,12 @@ class HomeViewModel : ViewModel() {
                     brought = brought,
                     quantity = currentState.defaultQuantity,
                     quantityText = currentState.defaultQuantity.toString(),
-                    saveButtonState = SaveButtonState.SAVE
+                    saveButtonState = resolveButtonState(currentState.copy(brought = brought))
                 )
             } else {
                 _uiState.value = currentState.copy(
                     brought = brought,
-                    saveButtonState = SaveButtonState.SAVE
+                    saveButtonState = resolveButtonState(currentState.copy(brought = brought))
                 )
             }
             
@@ -66,17 +66,24 @@ class HomeViewModel : ViewModel() {
     
     fun saveMilkEntry(userId: String) {
         viewModelScope.launch {
+            val currentState = _uiState.value
+            val actionState = resolveButtonState(currentState)
+
             try {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = true, 
-                    saveButtonState = SaveButtonState.LOADING
-                )
-                
-                val currentState = _uiState.value
-                
                 // Debug logging
                 android.util.Log.d("HomeViewModel", "saveMilkEntry called - userId: $userId")
                 android.util.Log.d("HomeViewModel", "Current state - brought: ${currentState.brought}, hasEntryToday: ${currentState.hasEntryToday}, isEditMode: ${currentState.isEditMode}")
+
+                val loadingState = when (actionState) {
+                    SaveButtonState.REMOVE, SaveButtonState.LOADING_REMOVE -> SaveButtonState.LOADING_REMOVE
+                    SaveButtonState.UPDATE, SaveButtonState.LOADING_UPDATE -> SaveButtonState.LOADING_UPDATE
+                    else -> SaveButtonState.LOADING
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = true,
+                    saveButtonState = loadingState
+                )
                 
                 // If not brought and we're editing an existing entry, delete it
                 if (!currentState.brought && currentState.hasEntryToday && currentState.isEditMode) {
@@ -111,7 +118,7 @@ class HomeViewModel : ViewModel() {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             message = "Error removing entry: ${deleteResult.exceptionOrNull()?.message}",
-                            saveButtonState = SaveButtonState.SAVE
+                            saveButtonState = resolveFailureState(currentState)
                         )
                     }
                     return@launch
@@ -121,7 +128,7 @@ class HomeViewModel : ViewModel() {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     message = "Unexpected error: ${e.message}",
-                    saveButtonState = SaveButtonState.SAVE
+                    saveButtonState = resolveFailureState(_uiState.value)
                 )
                 return@launch
             }
@@ -138,10 +145,15 @@ class HomeViewModel : ViewModel() {
             val result = firestoreRepository.saveMilkEntry(entry)
             
             if (result.isSuccess) {
+                val successState = when (actionState) {
+                    SaveButtonState.UPDATE, SaveButtonState.LOADING_UPDATE -> SaveButtonState.UPDATED
+                    else -> SaveButtonState.SAVED
+                }
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     message = "Data saved successfully",
-                    saveButtonState = SaveButtonState.SAVED,
+                    saveButtonState = successState,
                     hasEntryToday = true,
                     todayEntry = entry,
                     isEditMode = false
@@ -154,7 +166,7 @@ class HomeViewModel : ViewModel() {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     message = "Error saving data",
-                    saveButtonState = SaveButtonState.SAVE
+                    saveButtonState = resolveFailureState(currentState)
                 )
             }
         }
@@ -215,7 +227,7 @@ class HomeViewModel : ViewModel() {
         val currentState = _uiState.value
         _uiState.value = currentState.copy(
             isEditMode = !currentState.isEditMode,
-            saveButtonState = if (!currentState.isEditMode) SaveButtonState.SAVE else SaveButtonState.HIDDEN
+            saveButtonState = if (!currentState.isEditMode) resolveButtonState(currentState.copy(isEditMode = true)) else SaveButtonState.HIDDEN
         )
     }
     
@@ -234,6 +246,23 @@ class HomeViewModel : ViewModel() {
     
     fun clearMessage() {
         _uiState.value = _uiState.value.copy(message = null)
+    }
+
+    private fun resolveButtonState(state: HomeUiState): SaveButtonState {
+        return when {
+            !state.isEditMode && state.hasEntryToday -> SaveButtonState.HIDDEN
+            state.isEditMode && state.hasEntryToday && !state.brought -> SaveButtonState.REMOVE
+            state.isEditMode && state.hasEntryToday -> SaveButtonState.UPDATE
+            else -> SaveButtonState.SAVE
+        }
+    }
+
+    private fun resolveFailureState(state: HomeUiState): SaveButtonState {
+        return when {
+            state.hasEntryToday && state.isEditMode && !state.brought -> SaveButtonState.REMOVE
+            state.hasEntryToday && state.isEditMode -> SaveButtonState.UPDATE
+            else -> SaveButtonState.SAVE
+        }
     }
 }
 
