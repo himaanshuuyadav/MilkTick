@@ -20,6 +20,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.prantiux.milktick.R
 import com.prantiux.milktick.notification.NotificationScheduler
 import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 import com.prantiux.milktick.utils.NotificationPreferences
 import kotlinx.coroutines.launch
 
@@ -81,25 +83,8 @@ fun NotificationSettingsScreen(
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Notification Settings") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(painter = painterResource(R.drawable.ic_fa_arrow_left), contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.clip(RoundedCornerShape(
-                    topStart = 0.dp,
-                    topEnd = 0.dp,
-                    bottomStart = 20.dp,
-                    bottomEnd = 20.dp
-                ))
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -114,10 +99,16 @@ fun NotificationSettingsScreen(
                 )
                 .padding(paddingValues)
         ) {
+            MilkTickSubpageSystemBarsGradient()
+            MilkTickSubpageFloatingHeader(
+                title = "Notification Settings",
+                onBackClick = { navController.popBackStack() }
+            )
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(24.dp)
+                contentPadding = PaddingValues(top = 144.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
             ) {
                 // Master toggle
                 item {
