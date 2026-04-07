@@ -5,7 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyRate
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.repository.AppGraph
+import com.prantiux.milktick.repository.MainRepository
 import com.prantiux.milktick.utils.CsvExporter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,7 @@ import kotlinx.coroutines.launch
 import java.time.YearMonth
 
 class SummaryViewModel : ViewModel() {
-    private val firestoreRepository = FirestoreRepository()
+    private val firestoreRepository: MainRepository = AppGraph.mainRepository
     private val csvExporter = CsvExporter()
     
     private val _uiState = MutableStateFlow(SummaryUiState())
