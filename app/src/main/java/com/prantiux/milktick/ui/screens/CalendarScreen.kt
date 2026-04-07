@@ -27,7 +27,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
-import com.prantiux.milktick.ui.components.SkeletonLoadingBox
 import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
 import com.prantiux.milktick.ui.components.MilkTickSubpageHeaderActionButton
 import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
@@ -35,7 +34,7 @@ import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.CalendarUiState
 import com.prantiux.milktick.viewmodel.CalendarViewModel
 import com.prantiux.milktick.viewmodel.EntryDetail
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.repository.AppGraph
 import android.content.Context
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -95,143 +94,11 @@ fun CalendarScreen(
                 .padding(paddingValues)
         ) {
             if (uiState.isLoading) {
-                // Skeleton loading for entire calendar page
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Calendar skeleton
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Days header skeleton
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                repeat(7) {
-                                    SkeletonLoadingBox(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .padding(horizontal = 4.dp),
-                                        height = 16.dp
-                                    )
-                                }
-                            }
-                            
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                            )
-                            
-                            // Calendar grid skeleton
-                            Column(
-                                modifier = Modifier.height(300.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                repeat(5) { _ ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        repeat(7) {
-                                            SkeletonLoadingBox(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .aspectRatio(1f),
-                                                height = 40.dp,
-                                                cornerRadius = 20.dp
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Summary skeleton
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            SkeletonLoadingBox(
-                                modifier = Modifier.width(140.dp),
-                                height = 20.dp
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                repeat(3) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        SkeletonLoadingBox(
-                                            modifier = Modifier.width(70.dp),
-                                            height = 14.dp
-                                        )
-                                        SkeletonLoadingBox(
-                                            modifier = Modifier.width(50.dp),
-                                            height = 20.dp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Payment skeleton
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            SkeletonLoadingBox(
-                                modifier = Modifier.width(150.dp),
-                                height = 24.dp
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                repeat(2) {
-                                    SkeletonLoadingBox(
-                                        modifier = Modifier.weight(1f),
-                                        height = 80.dp,
-                                        cornerRadius = 16.dp
-                                    )
-                                }
-                            }
-                            SkeletonLoadingBox(
-                                modifier = Modifier.fillMaxWidth(),
-                                height = 100.dp,
-                                cornerRadius = 16.dp
-                            )
-                        }
-                    }
+                    CircularProgressIndicator()
                 }
             } else {
                 MilkTickSubpageSystemBarsGradient()
@@ -1442,7 +1309,11 @@ fun exportMonthData(
         onDismiss: () -> Unit,
         onSave: (Float, Float) -> Unit
     ) {
-        val repository = remember { FirestoreRepository() }
+        val context = androidx.compose.ui.platform.LocalContext.current
+        LaunchedEffect(Unit) {
+            AppGraph.initialize(context)
+        }
+        val repository = remember { AppGraph.mainRepository }
         val scope = rememberCoroutineScope()
 
         var rateText by remember { mutableStateOf(if (currentRate > 0) currentRate.toString() else "") }
