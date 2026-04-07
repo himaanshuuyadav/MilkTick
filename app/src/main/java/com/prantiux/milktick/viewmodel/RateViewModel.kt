@@ -3,7 +3,10 @@ package com.prantiux.milktick.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MonthlyRate
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.data.local.SyncState
+import com.prantiux.milktick.repository.AppGraph
+import com.prantiux.milktick.repository.MainRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +14,8 @@ import kotlinx.coroutines.launch
 import java.time.YearMonth
 
 class RateViewModel : ViewModel() {
-    private val firestoreRepository = FirestoreRepository()
+    private val firestoreRepository: MainRepository = AppGraph.mainRepository
+    private var syncStateObserverJob: Job? = null
     
     private val _uiState = MutableStateFlow(RateUiState())
     val uiState: StateFlow<RateUiState> = _uiState.asStateFlow()
@@ -55,6 +59,7 @@ class RateViewModel : ViewModel() {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     message = "Rate saved successfully",
+                    syncState = SyncState.PENDING_UPDATE,
                     saveButtonState = if (loadingState == SaveButtonState.LOADING_UPDATE) {
                         SaveButtonState.UPDATED
                     } else {
@@ -115,8 +120,20 @@ class RateViewModel : ViewModel() {
                     defaultQuantityText = if (rate?.defaultQuantity != null && rate.defaultQuantity > 0) rate.defaultQuantity.toString() else "",
                     hasData = hasExistingData,
                     isEditMode = !hasExistingData, // Edit mode if no data exists
-                    saveButtonState = if (hasExistingData) SaveButtonState.HIDDEN else SaveButtonState.SAVE
+                    saveButtonState = if (hasExistingData) SaveButtonState.HIDDEN else SaveButtonState.SAVE,
+                    syncState = SyncState.SYNCED
                 )
+
+                observeRateSyncState(userId, _uiState.value.selectedYearMonth)
+            }
+        }
+    }
+
+    private fun observeRateSyncState(userId: String, yearMonth: YearMonth) {
+        syncStateObserverJob?.cancel()
+        syncStateObserverJob = viewModelScope.launch {
+            firestoreRepository.observeRateSyncState(userId, yearMonth).collect { state ->
+                _uiState.value = _uiState.value.copy(syncState = state ?: SyncState.SYNCED)
             }
         }
     }
@@ -142,5 +159,6 @@ data class RateUiState(
     val message: String? = null,
     val hasData: Boolean = false,
     val isEditMode: Boolean = false,
-    val saveButtonState: SaveButtonState = SaveButtonState.HIDDEN
+    val saveButtonState: SaveButtonState = SaveButtonState.HIDDEN,
+    val syncState: SyncState = SyncState.SYNCED
 ) 
