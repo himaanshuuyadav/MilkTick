@@ -2,8 +2,8 @@ package com.prantiux.milktick.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.prantiux.milktick.data.MilkEntry
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.repository.AppGraph
+import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +13,7 @@ import java.time.YearMonth
 import kotlin.math.roundToInt
 
 class AnalyticsViewModel : ViewModel() {
-    private val firestoreRepository = FirestoreRepository()
+    private val firestoreRepository: MainRepository = AppGraph.mainRepository
     
     private val _analyticsData = MutableStateFlow(AnalyticsData())
     val analyticsData: StateFlow<AnalyticsData> = _analyticsData.asStateFlow()
@@ -25,19 +25,12 @@ class AnalyticsViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                android.util.Log.d("AnalyticsViewModel", "Loading analytics for userId: $userId")
                 val currentYearMonth = YearMonth.now()
                 val previousYearMonth = currentYearMonth.minusMonths(1)
-                
-                // Get current and previous month data
-                val currentMonthEntries = firestoreRepository.getMilkEntriesForMonthSync(userId, currentYearMonth)
-                android.util.Log.d("AnalyticsViewModel", "Current month entries: ${currentMonthEntries.size}")
-                val previousMonthEntries = firestoreRepository.getMilkEntriesForMonthSync(userId, previousYearMonth)
-                android.util.Log.d("AnalyticsViewModel", "Previous month entries: ${previousMonthEntries.size}")
-                
-                // Calculate current and previous month totals (only count brought entries)
-                val currentMonthQuantity = currentMonthEntries.filter { it.brought }.sumOf { it.quantity.toDouble() }.toFloat()
-                val previousMonthQuantity = previousMonthEntries.filter { it.brought }.sumOf { it.quantity.toDouble() }.toFloat()
+
+                // Aggregate directly from Room
+                val currentMonthQuantity = firestoreRepository.getMonthlyTotalQuantity(userId, currentYearMonth)
+                val previousMonthQuantity = firestoreRepository.getMonthlyTotalQuantity(userId, previousYearMonth)
                 
                 // Calculate average daily consumption
                 val daysInCurrentMonth = currentYearMonth.lengthOfMonth()
@@ -47,7 +40,7 @@ class AnalyticsViewModel : ViewModel() {
                 
                 // Calculate delivery consistency
                 val expectedDeliveries = daysInCurrentMonth
-                val actualDeliveries = currentMonthEntries.count { it.brought }
+                val actualDeliveries = firestoreRepository.getMonthlyDeliveryDays(userId, currentYearMonth)
                 val consistency = if (expectedDeliveries > 0) {
                     ((actualDeliveries.toFloat() / expectedDeliveries) * 100).roundToInt()
                 } else 0
@@ -62,8 +55,7 @@ class AnalyticsViewModel : ViewModel() {
                 
                 for (i in 11 downTo 0) {
                     val month = currentYearMonth.minusMonths(i.toLong())
-                    val entries = firestoreRepository.getMilkEntriesForMonthSync(userId, month)
-                    val monthQuantity = entries.filter { it.brought }.sumOf { it.quantity.toDouble() }.toFloat()
+                    val monthQuantity = firestoreRepository.getMonthlyTotalQuantity(userId, month)
                     yearlyData.add(monthQuantity)
                     
                     // Get actual rate from Firebase for each month
