@@ -1,7 +1,6 @@
 package com.prantiux.milktick.repository
 
 import android.util.Log
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.prantiux.milktick.data.MilkEntry
@@ -17,84 +16,8 @@ import java.time.format.DateTimeFormatter
 
 class FirestoreRepository {
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     private val yearMonthFormatter = DateTimeFormatter.ofPattern("yyyy-MM")
-    
-    // Test Firebase connection and auth
-    suspend fun testFirestoreConnection(): Result<String> {
-        return try {
-            val currentUser = auth.currentUser
-            Log.d("FirestoreRepo", "Current user: ${currentUser?.uid}")
-            Log.d("FirestoreRepo", "Current user email: ${currentUser?.email}")
-            Log.d("FirestoreRepo", "Is user authenticated: ${currentUser != null}")
-            
-            if (currentUser == null) {
-                return Result.failure(Exception("User not authenticated - please log in again"))
-            }
-            
-            // First test: try to read from Firestore (this usually works even with restrictive rules)
-            Log.d("FirestoreRepo", "Testing Firestore read access...")
-            try {
-                val testReadResult = db.collection("test").limit(1).get().await()
-                Log.d("FirestoreRepo", "Firestore read test successful, documents: ${testReadResult.size()}")
-            } catch (e: Exception) {
-                Log.e("FirestoreRepo", "Firestore read test failed", e)
-                return Result.failure(Exception("Cannot connect to Firestore: ${e.message}"))
-            }
-            
-            // Second test: try to write to Firestore
-            Log.d("FirestoreRepo", "Testing Firestore write access...")
-            val testData = mapOf(
-                "test" to "connection",
-                "timestamp" to System.currentTimeMillis(),
-                "userId" to currentUser.uid,
-                "userEmail" to (currentUser.email ?: "unknown")
-            )
-            
-            try {
-                db.collection("test")
-                    .document("connection_test_${currentUser.uid}")
-                    .set(testData)
-                    .await()
-                    
-                Log.d("FirestoreRepo", "Firestore write test successful")
-                
-                // Third test: try to read back what we just wrote
-                val readBack = db.collection("test")
-                    .document("connection_test_${currentUser.uid}")
-                    .get()
-                    .await()
-                    
-                if (readBack.exists()) {
-                    Log.d("FirestoreRepo", "Read-back test successful")
-                    return Result.success("✅ All tests passed! Firebase is working correctly for user: ${currentUser.email}")
-                } else {
-                    return Result.failure(Exception("Write succeeded but read-back failed"))
-                }
-                
-            } catch (e: Exception) {
-                Log.e("FirestoreRepo", "Firestore write test failed", e)
-                
-                // Provide specific guidance based on the error
-                val errorMessage = when {
-                    e.message?.contains("PERMISSION_DENIED") == true -> 
-                        "Permission denied - Firestore security rules are blocking write access. You need to update Firebase security rules."
-                    e.message?.contains("UNAUTHENTICATED") == true -> 
-                        "Authentication failed - please log out and log back in."
-                    e.message?.contains("UNAVAILABLE") == true -> 
-                        "Firebase service unavailable - check your internet connection."
-                    else -> "Write failed: ${e.message}"
-                }
-                
-                return Result.failure(Exception(errorMessage))
-            }
-            
-        } catch (e: Exception) {
-            Log.e("FirestoreRepo", "General connection test failed", e)
-            Result.failure(e)
-        }
-    }
 
     // Milk Entries
     suspend fun saveMilkEntry(entry: MilkEntry): Result<Unit> {
