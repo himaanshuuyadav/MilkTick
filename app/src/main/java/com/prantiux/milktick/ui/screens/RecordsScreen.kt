@@ -28,7 +28,6 @@ import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
 import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
 import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
-import com.prantiux.milktick.ui.components.SkeletonRecordsMonthCard
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.RecordsViewModel
 import com.prantiux.milktick.viewmodel.AppViewModel
@@ -201,8 +200,24 @@ fun RecordsScreen(
                 }
 
                 if (uiState.isLoading) {
-                    items(6) {
-                        SkeletonRecordsMonthCard()
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
                     }
                 } else {
                     val months = Month.values().toList()
@@ -405,7 +420,11 @@ fun YearExportDialog(
     onDismiss: () -> Unit,
     onExportComplete: (String) -> Unit
 ) {
-    val repository = remember { com.prantiux.milktick.repository.FirestoreRepository() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) {
+        com.prantiux.milktick.repository.AppGraph.initialize(context)
+    }
+    val repository = remember { com.prantiux.milktick.repository.AppGraph.mainRepository }
     
     var isExporting by remember { mutableStateOf(false) }
     var entriesData by remember { mutableStateOf<List<com.prantiux.milktick.data.MilkEntry>>(emptyList()) }
@@ -702,7 +721,7 @@ suspend fun exportYearData(
     entries: List<com.prantiux.milktick.data.MilkEntry>
 ): String {
     return try {
-        val repository = com.prantiux.milktick.repository.FirestoreRepository()
+        val repository = com.prantiux.milktick.repository.AppGraph.mainRepository
         
         // Create MilkTick directory in Documents folder
         val documentsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS)
