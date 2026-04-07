@@ -19,7 +19,7 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.prantiux.milktick.R
 import com.prantiux.milktick.notification.NotificationScheduler
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
 import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 import com.prantiux.milktick.utils.NotificationPreferences
@@ -31,8 +31,11 @@ fun NotificationSettingsScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        AppGraph.initialize(context)
+    }
     val prefs = remember { NotificationPreferences(context) }
-    val repository = remember { FirestoreRepository() }
+    val repository = remember { AppGraph.mainRepository }
     val scope = rememberCoroutineScope()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     
