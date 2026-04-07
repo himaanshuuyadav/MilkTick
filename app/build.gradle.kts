@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.kapt")
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     id("com.google.gms.google-services")
 }
@@ -89,6 +90,11 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-analytics")
+
+    // Room (offline-first local source of truth)
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
     
     // Date/Time
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
