@@ -14,7 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
@@ -22,14 +24,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
-import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
 import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
-import com.prantiux.milktick.ui.components.SkeletonHomeWelcomeCard
-import com.prantiux.milktick.ui.components.SkeletonHomeMilkCard
+import com.prantiux.milktick.data.local.SyncState
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.HomeViewModel
 import com.prantiux.milktick.viewmodel.AppViewModel
@@ -194,57 +195,13 @@ fun HomeScreen(
                         
                         // Content based on loading state
                         if (uiState.isCheckingEntry) {
-                            // Show skeleton loading content inside the card
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(20.dp)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(220.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                // Toggle row skeleton
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        com.prantiux.milktick.ui.components.SkeletonLoadingBox(
-                                            modifier = Modifier.width(150.dp),
-                                            height = 16.dp
-                                        )
-                                        com.prantiux.milktick.ui.components.SkeletonLoadingBox(
-                                            modifier = Modifier.width(120.dp),
-                                            height = 14.dp
-                                        )
-                                    }
-                                    com.prantiux.milktick.ui.components.SkeletonLoadingBox(
-                                        modifier = Modifier.size(48.dp, 24.dp),
-                                        height = 24.dp,
-                                        cornerRadius = 12.dp
-                                    )
-                                }
-                                
-                                // Input fields skeleton
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    com.prantiux.milktick.ui.components.SkeletonLoadingBox(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        height = 56.dp,
-                                        cornerRadius = 8.dp
-                                    )
-                                    com.prantiux.milktick.ui.components.SkeletonLoadingBox(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        height = 80.dp,
-                                        cornerRadius = 8.dp
-                                    )
-                                }
-                                
-                                // Save button skeleton
-                                com.prantiux.milktick.ui.components.SkeletonLoadingBox(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    height = 56.dp,
-                                    cornerRadius = 16.dp
-                                )
+                                CircularProgressIndicator()
                             }
                         } else {
                             // Did you bring milk toggle - always visible
@@ -457,32 +414,12 @@ fun HomeScreen(
                 }
             )
 
-            MilkTickFloatingHeader(
-                title = stringResource(R.string.home_title),
-                scrollState = listState,
-                actions = {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(percent = 50))
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-                            .clickable { showRateSheet = true }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_fa_coins),
-                            contentDescription = "Monthly Rate",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "Monthly Rate",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+            HomeAnimatedHeader(
+                syncState = uiState.syncState,
+                listState = listState,
+                onMonthlyRateClick = { showRateSheet = true },
+                onRetryClick = {
+                    homeViewModel.retrySync()
                 }
             )
 
@@ -505,6 +442,211 @@ fun HomeScreen(
         }
     }
 } 
+
+@Composable
+private fun HomeAnimatedHeader(
+    syncState: SyncState,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    onMonthlyRateClick: () -> Unit,
+    onRetryClick: () -> Unit
+) {
+    val isScrolled = listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+    val headerElevation by animateDpAsState(
+        targetValue = if (isScrolled) 8.dp else 4.dp,
+        animationSpec = tween(durationMillis = 180),
+        label = "homeHeaderElevation"
+    )
+
+    val isSyncing = syncState == SyncState.PENDING_CREATE ||
+        syncState == SyncState.PENDING_UPDATE ||
+        syncState == SyncState.PENDING_DELETE
+    val isFailed = syncState == SyncState.FAILED
+
+    val syncStage = when {
+        isSyncing -> "SYNCING"
+        isFailed -> "FAILED"
+        else -> "SYNCED"
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "syncRotate")
+    val rotateDeg by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "syncRotateDeg"
+    )
+
+    val failedPulse by infiniteTransition.animateFloat(
+        initialValue = 0.98f,
+        targetValue = 1.02f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "failedPulse"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .zIndex(10f),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Surface(
+            modifier = Modifier
+                .padding(top = topInset + 4.dp, start = 16.dp, end = 16.dp)
+                .fillMaxWidth()
+                .height(60.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            shadowElevation = headerElevation
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AnimatedVisibility(
+                        visible = syncStage == "SYNCED",
+                        enter = slideInHorizontally(
+                            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                            initialOffsetX = { -it / 2 }
+                        ) + fadeIn(animationSpec = tween(durationMillis = 260)),
+                        exit = slideOutHorizontally(
+                            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+                            targetOffsetX = { -it / 2 }
+                        ) + fadeOut(animationSpec = tween(durationMillis = 220))
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.header_logo),
+                            contentDescription = "MilkTick",
+                            modifier = Modifier.size(30.dp),
+                            tint = Color.Unspecified
+                        )
+                    }
+
+                    AnimatedContent(
+                        targetState = syncStage,
+                        transitionSpec = {
+                            (slideInHorizontally(
+                                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                                initialOffsetX = { it / 3 }
+                            ) + fadeIn(animationSpec = tween(durationMillis = 260))) togetherWith
+                                (slideOutHorizontally(
+                                    animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+                                    targetOffsetX = { -it / 4 }
+                                ) + fadeOut(animationSpec = tween(durationMillis = 200)))
+                        },
+                        label = "headerSyncStage"
+                    ) { stage ->
+                        when (stage) {
+                            "SYNCED" -> {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_sync_cloud),
+                                    contentDescription = "Synced",
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            "SYNCING" -> {
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .background(MaterialTheme.colorScheme.primaryContainer)
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_sync_rotate),
+                                        contentDescription = "Syncing",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .rotate(rotateDeg)
+                                    )
+                                    Text(
+                                        text = "Syncing...",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+
+                            else -> {
+                                Row(
+                                    modifier = Modifier
+                                        .graphicsLayer {
+                                            val pulse = failedPulse
+                                            scaleX = pulse
+                                            scaleY = pulse
+                                        }
+                                        .clip(RoundedCornerShape(50))
+                                        .background(MaterialTheme.colorScheme.errorContainer)
+                                        .clickable(onClick = onRetryClick)
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_sync_retry),
+                                        contentDescription = "Retry sync",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "Retry",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                        .clickable { onMonthlyRateClick() }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_fa_coins),
+                        contentDescription = "Monthly Rate",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Monthly Rate",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun BoxScope.HomeSaveActionBar(
@@ -616,5 +758,6 @@ private fun BoxScope.HomeSaveActionBar(
                 }
             }
         }
+
     }
 }
