@@ -19,19 +19,24 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.google.firebase.auth.FirebaseAuth
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.NavGraph
 import com.prantiux.milktick.navigation.Screen
 import com.prantiux.milktick.notification.NotificationHelper
 import com.prantiux.milktick.notification.NotificationScheduler
+import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.ui.components.BottomNavigation
+import com.prantiux.milktick.sync.SyncWorkScheduler
 import com.prantiux.milktick.ui.theme.MilkTickTheme
 import com.prantiux.milktick.viewmodel.AuthState
 import com.prantiux.milktick.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -52,6 +57,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        AppGraph.initialize(applicationContext)
+        SyncWorkScheduler.schedulePeriodicSync(applicationContext, repeatMinutes = 30)
+
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser != null) {
+            lifecycleScope.launch {
+                val repo = AppGraph.mainRepository
+                if (repo.shouldRunInitialSync(currentUser.uid)) {
+                    repo.performInitialSyncIfNeeded(currentUser.uid)
+                }
+            }
+        }
         
         // Create notification channels
         NotificationHelper.createNotificationChannels(this)
