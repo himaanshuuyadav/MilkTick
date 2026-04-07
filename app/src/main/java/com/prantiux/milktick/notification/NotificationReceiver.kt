@@ -6,7 +6,8 @@ import android.content.Intent
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.prantiux.milktick.data.MilkEntry
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.repository.AppGraph
+import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -15,10 +16,12 @@ import java.time.YearMonth
 
 class NotificationReceiver : BroadcastReceiver() {
     
-    private val repository = FirestoreRepository()
+    private lateinit var repository: MainRepository
     private val auth = FirebaseAuth.getInstance()
     
     override fun onReceive(context: Context, intent: Intent) {
+        AppGraph.initialize(context.applicationContext)
+        repository = AppGraph.mainRepository
         when (intent.action) {
             NotificationHelper.ACTION_MILK_YES -> {
                 handleMilkYes(context)
