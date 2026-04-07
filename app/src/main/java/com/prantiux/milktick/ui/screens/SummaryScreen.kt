@@ -25,12 +25,6 @@ import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
 import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
 import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
-import com.prantiux.milktick.ui.components.SkeletonSummaryMonthCard
-import com.prantiux.milktick.ui.components.SkeletonSummaryStatsRow
-import com.prantiux.milktick.ui.components.SkeletonSummaryTotalAmountCard
-import com.prantiux.milktick.ui.components.SkeletonSummaryQuickStats
-import com.prantiux.milktick.ui.components.SkeletonSummaryListItem
-import com.prantiux.milktick.ui.components.SkeletonLoadingBox
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.SummaryViewModel
 import com.prantiux.milktick.viewmodel.AppViewModel
@@ -145,37 +139,24 @@ fun SummaryScreen(
                 }
                 
                 if (uiState.isLoading) {
-                    // Month header skeleton
                     item {
-                        SkeletonSummaryMonthCard()
-                    }
-                    
-                    // Stats row skeleton (Days + Total)
-                    item {
-                        SkeletonSummaryStatsRow()
-                    }
-                    
-                    // Total Amount card skeleton
-                    item {
-                        SkeletonSummaryTotalAmountCard()
-                    }
-                    
-                    // Quick Statistics skeleton
-                    item {
-                        SkeletonSummaryQuickStats()
-                    }
-                    
-                    // Recent Entries header skeleton
-                    item {
-                        SkeletonLoadingBox(
-                            modifier = Modifier.width(120.dp),
-                            height = 20.dp
-                        )
-                    }
-                    
-                    // Recent entries list skeleton
-                    items(3) {
-                        SkeletonSummaryListItem()
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
                     }
                 } else {
                     // Main Statistics Cards
