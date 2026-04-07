@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyPayment
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.data.local.SyncState
+import com.prantiux.milktick.repository.AppGraph
+import com.prantiux.milktick.repository.MainRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,11 +32,12 @@ data class CalendarUiState(
     val paymentNote: String = "",
     val isEditingPayment: Boolean = false,
     val defaultQuantity: Float = 0f,
+    val monthSyncState: SyncState = SyncState.SYNCED,
     val error: String? = null
 )
 
 class CalendarViewModel(
-    private val repository: FirestoreRepository = FirestoreRepository()
+    private val repository: MainRepository = AppGraph.mainRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(CalendarUiState())
@@ -41,6 +45,7 @@ class CalendarViewModel(
     
     private var currentUserId: String = ""
     private var currentYearMonth: YearMonth? = null
+    private var monthSyncObserverJob: Job? = null
     
     fun loadMonthData(userId: String, yearMonth: YearMonth) {
         currentUserId = userId
@@ -84,13 +89,25 @@ class CalendarViewModel(
                     totalCost = totalCost,
                     isPaid = payment?.isPaid ?: false,
                     paymentNote = payment?.paymentNote ?: "",
-                    isEditingPayment = false
+                    isEditingPayment = false,
+                    monthSyncState = SyncState.SYNCED
                 )
+
+                observeMonthSyncState(userId, yearMonth)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = e.message
                 )
+            }
+        }
+    }
+
+    private fun observeMonthSyncState(userId: String, yearMonth: YearMonth) {
+        monthSyncObserverJob?.cancel()
+        monthSyncObserverJob = viewModelScope.launch {
+            repository.observeMonthSyncState(userId, yearMonth).collect { state ->
+                _uiState.value = _uiState.value.copy(monthSyncState = state ?: SyncState.SYNCED)
             }
         }
     }
@@ -107,6 +124,7 @@ class CalendarViewModel(
                 paymentNote = _uiState.value.paymentNote,
                 paidDate = if (isPaid) System.currentTimeMillis() else null
             )
+            _uiState.value = _uiState.value.copy(monthSyncState = SyncState.PENDING_UPDATE)
             repository.saveMonthlyPayment(payment)
         }
     }
@@ -125,6 +143,7 @@ class CalendarViewModel(
                 paymentNote = _uiState.value.paymentNote,
                 paidDate = if (_uiState.value.isPaid) System.currentTimeMillis() else null
             )
+            _uiState.value = _uiState.value.copy(monthSyncState = SyncState.PENDING_UPDATE)
             repository.saveMonthlyPayment(payment)
             _uiState.value = _uiState.value.copy(isEditingPayment = false)
         }
@@ -150,7 +169,7 @@ class CalendarViewModel(
                     note = note,
                     userId = currentUserId
                 )
-                
+                _uiState.value = _uiState.value.copy(monthSyncState = SyncState.PENDING_UPDATE)
                 repository.saveMilkEntry(entry)
                 
                 // Reload data for the current month
