@@ -65,10 +65,8 @@ fun EditProfileScreen(
         isLoading = true
         try {
             // Update profile in Firestore with name only (image URI handling to be implemented)
-            println("DEBUG: Starting profile save with displayName='$displayName'")
             authViewModel.updateProfile(displayName) { success ->
                 if (success) {
-                    println("DEBUG: Profile update successful")
                     showSuccessMessage = true
                     originalDisplayName = displayName
                     // Clear the local URI after success
@@ -78,13 +76,11 @@ fun EditProfileScreen(
                         showSuccessMessage = false
                     }
                 } else {
-                    println("DEBUG: Profile update failed")
                     // Handle error case - show error or keep the selected image
                 }
                 isLoading = false
             }
         } catch (e: Exception) {
-            println("DEBUG: Exception during profile save: ${e.message}")
             isLoading = false
         }
     }
