@@ -6,7 +6,7 @@ import android.content.Intent
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.prantiux.milktick.data.MilkEntry
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.repository.AppGraph
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.YearMonth
@@ -93,7 +93,8 @@ class AddMilkEntryWorker(
             val isReminder = inputData.getBoolean("isReminder", false)
             
             val date = LocalDate.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE)
-            val repository = FirestoreRepository()
+            AppGraph.initialize(applicationContext)
+            val repository = AppGraph.mainRepository
             
             // Get default quantity for current month
             val yearMonth = YearMonth.of(date.year, date.monthValue)
