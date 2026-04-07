@@ -29,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -140,7 +141,14 @@ fun RateEditorContent(
         }
 
         if (uiState.isLoading) {
-            com.prantiux.milktick.ui.components.SkeletonRateFormCard()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         } else {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -472,5 +480,6 @@ fun RateEditorContent(
                 }
             }
         }
+
     }
 }
