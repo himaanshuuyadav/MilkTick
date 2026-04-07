@@ -2,6 +2,7 @@ package com.prantiux.milktick.utils
 
 import android.content.Context
 import androidx.work.*
+import com.prantiux.milktick.repository.AppGraph
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -100,7 +101,8 @@ class DailyNotificationWorker(
             val dateString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
             
             // Check if user already logged milk for today
-            val repository = com.prantiux.milktick.repository.FirestoreRepository()
+            AppGraph.initialize(applicationContext)
+            val repository = AppGraph.mainRepository
             val todayEntry = repository.getMilkEntryForDate(userId, today)
             
             // Only send notification if no entry exists for today
@@ -129,7 +131,8 @@ class ReminderNotificationWorker(
             val dateString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
             
             // Check if user already logged milk for today
-            val repository = com.prantiux.milktick.repository.FirestoreRepository()
+            AppGraph.initialize(applicationContext)
+            val repository = AppGraph.mainRepository
             val todayEntry = repository.getMilkEntryForDate(userId, today)
             
             // Only send reminder if no entry exists for today
