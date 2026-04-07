@@ -3,8 +3,11 @@ package com.prantiux.milktick.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MilkEntry
-import com.prantiux.milktick.repository.FirestoreRepository
+import com.prantiux.milktick.data.local.SyncState
+import com.prantiux.milktick.repository.AppGraph
+import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,17 +16,14 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 class HomeViewModel : ViewModel() {
-    private val firestoreRepository = FirestoreRepository()
+    private val firestoreRepository: MainRepository = AppGraph.mainRepository
+    private var syncStateObserverJob: Job? = null
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
     
     fun updateBrought(brought: Boolean) {
         val currentState = _uiState.value
-        
-        // Debug logging
-        android.util.Log.d("HomeViewModel", "updateBrought called - brought: $brought")
-        android.util.Log.d("HomeViewModel", "Current state - hasEntryToday: ${currentState.hasEntryToday}, isEditMode: ${currentState.isEditMode}")
         
         // Only allow updates if no entry exists for today or in edit mode
         if (!currentState.hasEntryToday || currentState.isEditMode) {
@@ -41,11 +41,6 @@ class HomeViewModel : ViewModel() {
                     saveButtonState = resolveButtonState(currentState.copy(brought = brought))
                 )
             }
-            
-            // Debug after update
-            android.util.Log.d("HomeViewModel", "After update - brought: ${_uiState.value.brought}, saveButtonState: ${_uiState.value.saveButtonState}")
-        } else {
-            android.util.Log.d("HomeViewModel", "updateBrought blocked - not in edit mode and has entry today")
         }
     }
     
@@ -70,10 +65,6 @@ class HomeViewModel : ViewModel() {
             val actionState = resolveButtonState(currentState)
 
             try {
-                // Debug logging
-                android.util.Log.d("HomeViewModel", "saveMilkEntry called - userId: $userId")
-                android.util.Log.d("HomeViewModel", "Current state - brought: ${currentState.brought}, hasEntryToday: ${currentState.hasEntryToday}, isEditMode: ${currentState.isEditMode}")
-
                 val loadingState = when (actionState) {
                     SaveButtonState.REMOVE, SaveButtonState.LOADING_REMOVE -> SaveButtonState.LOADING_REMOVE
                     SaveButtonState.UPDATE, SaveButtonState.LOADING_UPDATE -> SaveButtonState.LOADING_UPDATE
@@ -87,14 +78,7 @@ class HomeViewModel : ViewModel() {
                 
                 // If not brought and we're editing an existing entry, delete it
                 if (!currentState.brought && currentState.hasEntryToday && currentState.isEditMode) {
-                    android.util.Log.d("HomeViewModel", "Attempting to delete entry for date: ${LocalDate.now()}")
-                    
                     val deleteResult = firestoreRepository.deleteMilkEntry(userId, LocalDate.now())
-                    
-                    android.util.Log.d("HomeViewModel", "Delete result: ${deleteResult.isSuccess}")
-                    if (deleteResult.isFailure) {
-                        android.util.Log.e("HomeViewModel", "Delete error: ${deleteResult.exceptionOrNull()?.message}")
-                    }
                     
                     if (deleteResult.isSuccess) {
                         _uiState.value = _uiState.value.copy(
@@ -108,7 +92,8 @@ class HomeViewModel : ViewModel() {
                             quantity = currentState.defaultQuantity,
                             quantityText = if (currentState.defaultQuantity > 0) currentState.defaultQuantity.toString() else "",
                             note = "",
-                            brought = false
+                            brought = false,
+                            syncState = SyncState.PENDING_DELETE
                         )
                         
                         // Hide button after 2 seconds and return to original state
@@ -124,7 +109,6 @@ class HomeViewModel : ViewModel() {
                     return@launch
                 }
             } catch (e: Exception) {
-                android.util.Log.e("HomeViewModel", "Exception in saveMilkEntry", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     message = "Unexpected error: ${e.message}",
@@ -156,7 +140,8 @@ class HomeViewModel : ViewModel() {
                     saveButtonState = successState,
                     hasEntryToday = true,
                     todayEntry = entry,
-                    isEditMode = false
+                    isEditMode = false,
+                    syncState = SyncState.PENDING_UPDATE
                 )
                 
                 // Hide saved button after 2 seconds and switch to display mode
@@ -205,7 +190,8 @@ class HomeViewModel : ViewModel() {
                     note = todayEntry.note ?: "",
                     saveButtonState = SaveButtonState.HIDDEN,
                     isEditMode = false,
-                    isCheckingEntry = false
+                    isCheckingEntry = false,
+                    syncState = SyncState.SYNCED
                 )
             } else {
                 // No entry for today - show input mode
@@ -217,8 +203,20 @@ class HomeViewModel : ViewModel() {
                     todayEntry = null,
                     saveButtonState = SaveButtonState.SAVE,
                     isEditMode = false,
-                    isCheckingEntry = false
+                    isCheckingEntry = false,
+                    syncState = SyncState.SYNCED
                 )
+            }
+
+            observeTodaySyncState(userId)
+        }
+    }
+
+    private fun observeTodaySyncState(userId: String) {
+        syncStateObserverJob?.cancel()
+        syncStateObserverJob = viewModelScope.launch {
+            firestoreRepository.observeEntrySyncState(userId, LocalDate.now()).collect { state ->
+                _uiState.value = _uiState.value.copy(syncState = state ?: SyncState.SYNCED)
             }
         }
     }
@@ -231,21 +229,17 @@ class HomeViewModel : ViewModel() {
         )
     }
     
-    fun testConnection() {
-        viewModelScope.launch {
-            val result = firestoreRepository.testFirestoreConnection()
-            _uiState.value = _uiState.value.copy(
-                message = if (result.isSuccess) {
-                    "Firebase connection test: ${result.getOrNull()}"
-                } else {
-                    "Firebase connection failed: ${result.exceptionOrNull()?.message}"
-                }
-            )
-        }
-    }
-    
     fun clearMessage() {
         _uiState.value = _uiState.value.copy(message = null)
+    }
+
+    fun retrySync() {
+        viewModelScope.launch {
+            firestoreRepository.triggerSync()
+            _uiState.value = _uiState.value.copy(
+                syncState = SyncState.PENDING_UPDATE
+            )
+        }
     }
 
     private fun resolveButtonState(state: HomeUiState): SaveButtonState {
@@ -279,5 +273,6 @@ data class HomeUiState(
     val saveButtonState: SaveButtonState = SaveButtonState.SAVE,
     val hasEntryToday: Boolean = false,
     val isEditMode: Boolean = false,
-    val todayEntry: MilkEntry? = null
+    val todayEntry: MilkEntry? = null,
+    val syncState: SyncState = SyncState.SYNCED
 ) 
