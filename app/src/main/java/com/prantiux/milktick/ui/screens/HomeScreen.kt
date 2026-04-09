@@ -29,6 +29,7 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
+import com.prantiux.milktick.ui.components.MilkTickHomeEntrySkeleton
 import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
 import com.prantiux.milktick.data.local.SyncState
 import com.prantiux.milktick.viewmodel.AuthViewModel
@@ -55,6 +56,7 @@ fun HomeScreen(
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val shouldOpenRateFromIntent = (context as? ComponentActivity)?.intent?.getStringExtra("navigate_to") == "rates"
     val rateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val currentUserId = currentUser?.uid
 
     LaunchedEffect(shouldOpenRateFromIntent) {
         if (shouldOpenRateFromIntent) {
@@ -63,12 +65,12 @@ fun HomeScreen(
         }
     }
     
-    // Only load data once when app initializes
-    LaunchedEffect(currentUser) {
-        currentUser?.uid?.let { userId ->
+    // Always bind Home data/observers for the active user.
+    LaunchedEffect(currentUserId) {
+        currentUserId?.let { userId ->
             appViewModel.updateCurrentUser(userId)
+            homeViewModel.loadDefaultQuantity(userId)
             if (!isAppInitialized) {
-                homeViewModel.loadDefaultQuantity(userId)
                 appViewModel.initializeApp(userId)
             }
         }
@@ -173,9 +175,8 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             
-                            // Edit button - only show when data exists and not in edit mode
                             AnimatedVisibility(
-                                visible = uiState.hasEntryToday && !uiState.isEditMode,
+                                visible = uiState.hasEntryToday,
                                 enter = scaleIn(animationSpec = tween(300)) + fadeIn(),
                                 exit = scaleOut(animationSpec = tween(300)) + fadeOut()
                             ) {
@@ -183,12 +184,23 @@ fun HomeScreen(
                                     onClick = { homeViewModel.toggleEditMode() },
                                     modifier = Modifier.size(40.dp)
                                 ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
-                                        contentDescription = "Edit",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    AnimatedContent(
+                                        targetState = uiState.isEditMode,
+                                        transitionSpec = {
+                                            (scaleIn(animationSpec = tween(220)) + fadeIn(animationSpec = tween(220))) togetherWith
+                                                (scaleOut(animationSpec = tween(180)) + fadeOut(animationSpec = tween(180)))
+                                        },
+                                        label = "homeEditCancelIcon"
+                                    ) { isEditMode ->
+                                        Icon(
+                                            painter = painterResource(
+                                                if (isEditMode) R.drawable.ic_fa_circle_xmark else R.drawable.ic_fa_pen_to_square
+                                            ),
+                                            contentDescription = if (isEditMode) "Cancel edit" else "Edit",
+                                            tint = if (isEditMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -201,7 +213,7 @@ fun HomeScreen(
                                     .height(220.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                MilkTickHomeEntrySkeleton(modifier = Modifier.fillMaxWidth())
                             }
                         } else {
                             // Did you bring milk toggle - always visible
@@ -417,10 +429,7 @@ fun HomeScreen(
             HomeAnimatedHeader(
                 syncState = uiState.syncState,
                 listState = listState,
-                onMonthlyRateClick = { showRateSheet = true },
-                onRetryClick = {
-                    homeViewModel.retrySync()
-                }
+                onMonthlyRateClick = { showRateSheet = true }
             )
 
             if (showRateSheet) {
@@ -447,8 +456,7 @@ fun HomeScreen(
 private fun HomeAnimatedHeader(
     syncState: SyncState,
     listState: androidx.compose.foundation.lazy.LazyListState,
-    onMonthlyRateClick: () -> Unit,
-    onRetryClick: () -> Unit
+    onMonthlyRateClick: () -> Unit
 ) {
     val isScrolled = listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -459,36 +467,27 @@ private fun HomeAnimatedHeader(
         label = "homeHeaderElevation"
     )
 
+    val (syncIconRes, syncIconTint, syncIconDescription) = when (syncState) {
+        SyncState.PENDING_CREATE, SyncState.PENDING_UPDATE, SyncState.PENDING_DELETE ->
+            Triple(R.drawable.ic_sync_rotate, MaterialTheme.colorScheme.primary, "Syncing")
+        SyncState.FAILED ->
+            Triple(R.drawable.ic_sync_retry, Color(0xFFF57C00), "Sync failed")
+        SyncState.SYNCED ->
+            Triple(R.drawable.ic_sync_cloud, Color(0xFF2E7D32), "Synced")
+    }
+
     val isSyncing = syncState == SyncState.PENDING_CREATE ||
         syncState == SyncState.PENDING_UPDATE ||
         syncState == SyncState.PENDING_DELETE
-    val isFailed = syncState == SyncState.FAILED
 
-    val syncStage = when {
-        isSyncing -> "SYNCING"
-        isFailed -> "FAILED"
-        else -> "SYNCED"
-    }
-
-    val infiniteTransition = rememberInfiniteTransition(label = "syncRotate")
-    val rotateDeg by infiniteTransition.animateFloat(
+    val syncRotation by rememberInfiniteTransition(label = "headerSyncRotation").animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 900, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "syncRotateDeg"
-    )
-
-    val failedPulse by infiniteTransition.animateFloat(
-        initialValue = 0.98f,
-        targetValue = 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "failedPulse"
+        label = "headerSyncRotationValue"
     )
 
     Box(
@@ -519,129 +518,60 @@ private fun HomeAnimatedHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    AnimatedVisibility(
-                        visible = syncStage == "SYNCED",
-                        enter = slideInHorizontally(
-                            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-                            initialOffsetX = { -it / 2 }
-                        ) + fadeIn(animationSpec = tween(durationMillis = 260)),
-                        exit = slideOutHorizontally(
-                            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                            targetOffsetX = { -it / 2 }
-                        ) + fadeOut(animationSpec = tween(durationMillis = 220))
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.header_logo),
-                            contentDescription = "MilkTick",
-                            modifier = Modifier.size(30.dp),
-                            tint = Color.Unspecified
-                        )
-                    }
-
-                    AnimatedContent(
-                        targetState = syncStage,
-                        transitionSpec = {
-                            (slideInHorizontally(
-                                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-                                initialOffsetX = { it / 3 }
-                            ) + fadeIn(animationSpec = tween(durationMillis = 260))) togetherWith
-                                (slideOutHorizontally(
-                                    animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                                    targetOffsetX = { -it / 4 }
-                                ) + fadeOut(animationSpec = tween(durationMillis = 200)))
-                        },
-                        label = "headerSyncStage"
-                    ) { stage ->
-                        when (stage) {
-                            "SYNCED" -> {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_sync_cloud),
-                                    contentDescription = "Synced",
-                                    tint = Color(0xFF2E7D32),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-
-                            "SYNCING" -> {
-                                Row(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(50))
-                                        .background(MaterialTheme.colorScheme.primaryContainer)
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_sync_rotate),
-                                        contentDescription = "Syncing",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier
-                                            .size(14.dp)
-                                            .rotate(rotateDeg)
-                                    )
-                                    Text(
-                                        text = "Syncing...",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-
-                            else -> {
-                                Row(
-                                    modifier = Modifier
-                                        .graphicsLayer {
-                                            val pulse = failedPulse
-                                            scaleX = pulse
-                                            scaleY = pulse
-                                        }
-                                        .clip(RoundedCornerShape(50))
-                                        .background(MaterialTheme.colorScheme.errorContainer)
-                                        .clickable(onClick = onRetryClick)
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_sync_retry),
-                                        contentDescription = "Retry sync",
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = "Retry",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    Icon(
+                        painter = painterResource(R.drawable.header_logo),
+                        contentDescription = "MilkTick",
+                        modifier = Modifier.size(30.dp),
+                        tint = Color.Unspecified
+                    )
                 }
 
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(percent = 50))
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-                        .clickable { onMonthlyRateClick() }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_fa_coins),
-                        contentDescription = "Monthly Rate",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "Monthly Rate",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
-                    )
+                    AnimatedContent(
+                        targetState = syncIconRes,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(180)) + scaleIn(animationSpec = tween(180, easing = FastOutSlowInEasing)) togetherWith
+                                fadeOut(animationSpec = tween(140)) + scaleOut(animationSpec = tween(140))
+                        },
+                        label = "headerSyncIconSwitch"
+                    ) { iconRes ->
+                        Icon(
+                            painter = painterResource(iconRes),
+                            contentDescription = syncIconDescription,
+                            tint = syncIconTint,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .rotate(if (isSyncing) syncRotation else 0f)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                            .clickable { onMonthlyRateClick() }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_fa_coins),
+                            contentDescription = "Monthly Rate",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Monthly Rate",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
