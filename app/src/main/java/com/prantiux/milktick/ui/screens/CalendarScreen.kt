@@ -27,6 +27,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
+import com.prantiux.milktick.ui.components.MilkTickCalendarScreenSkeleton
+import com.prantiux.milktick.ui.components.MilkTickExpressiveLoader
 import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
 import com.prantiux.milktick.ui.components.MilkTickSubpageHeaderActionButton
 import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
@@ -58,6 +60,7 @@ fun CalendarScreen(
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
     val uiState by calendarViewModel.uiState.collectAsState()
+    val currentUserId = currentUser?.uid
     
     val yearMonth = YearMonth.of(year, month)
     val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
@@ -69,10 +72,30 @@ fun CalendarScreen(
     var showExportDialog by remember { mutableStateOf(false) }
     var showMonthMenu by remember { mutableStateOf(false) }
     var showUpdateRateDialog by remember { mutableStateOf(false) }
+    var showSkeleton by remember(yearMonth) { mutableStateOf(false) }
+    var loadingStartedAtMs by remember(yearMonth) { mutableStateOf(System.currentTimeMillis()) }
+    val isTargetMonthReady = uiState.loadedYearMonth == yearMonth
+    val shouldRenderSkeleton = showSkeleton || !isTargetMonthReady
     
-    LaunchedEffect(currentUser, yearMonth) {
-        currentUser?.uid?.let { userId ->
+    LaunchedEffect(currentUserId, yearMonth) {
+        val needsInitialSkeleton = uiState.loadedYearMonth != yearMonth
+        showSkeleton = needsInitialSkeleton
+        if (needsInitialSkeleton) {
+            loadingStartedAtMs = System.currentTimeMillis()
+        }
+        currentUserId?.let { userId ->
             calendarViewModel.loadMonthData(userId, yearMonth)
+        }
+    }
+
+    LaunchedEffect(uiState.loadedYearMonth, yearMonth, showSkeleton) {
+        if (uiState.loadedYearMonth == yearMonth && showSkeleton) {
+            val minSkeletonDurationMs = 350L
+            val elapsedMs = System.currentTimeMillis() - loadingStartedAtMs
+            if (elapsedMs < minSkeletonDurationMs) {
+                delay(minSkeletonDurationMs - elapsedMs)
+            }
+            showSkeleton = false
         }
     }
     
@@ -93,13 +116,8 @@ fun CalendarScreen(
                 )
                 .padding(paddingValues)
         ) {
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+            if (shouldRenderSkeleton) {
+                MilkTickCalendarScreenSkeleton(message = "Loading calendar...")
             } else {
                 MilkTickSubpageSystemBarsGradient()
 
@@ -1008,7 +1026,7 @@ fun DateDetailDialog(
 @Composable
 fun ExportDialog(
     yearMonth: YearMonth,
-    context: Context,
+    @Suppress("UNUSED_PARAMETER") context: Context,
     uiState: CalendarUiState,
     onDismiss: () -> Unit,
     onExportComplete: (String) -> Unit
