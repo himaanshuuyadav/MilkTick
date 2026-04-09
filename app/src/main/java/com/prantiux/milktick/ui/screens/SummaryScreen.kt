@@ -24,6 +24,7 @@ import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
 import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickSummaryContentSkeleton
 import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.SummaryViewModel
@@ -54,8 +55,6 @@ fun SummaryScreen(
     LaunchedEffect(currentUserId) {
         currentUserId?.let { userId ->
             summaryViewModel.setCurrentUserId(userId)
-            // Force refresh every time Summary tab is opened
-            summaryViewModel.refreshData()
         }
     }
     
@@ -140,23 +139,7 @@ fun SummaryScreen(
                 
                 if (uiState.isLoading) {
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
+                        MilkTickSummaryContentSkeleton(modifier = Modifier.fillMaxWidth())
                     }
                 } else {
                     // Main Statistics Cards
