@@ -150,6 +150,35 @@ class FirestoreRepository {
             emptyList()
         }
     }
+
+    suspend fun getAllMilkEntriesSync(userId: String): List<MilkEntry> {
+        return try {
+            val snapshot = db.collection("users")
+                .document(userId)
+                .collection("entries")
+                .orderBy("date", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    MilkEntry(
+                        date = LocalDate.parse(doc.getString("date") ?: "", dateFormatter),
+                        quantity = doc.getDouble("quantity")?.toFloat() ?: 0f,
+                        brought = doc.getBoolean("brought") ?: false,
+                        note = doc.getString("note"),
+                        userId = doc.getString("userId") ?: ""
+                    )
+                } catch (e: Exception) {
+                    Log.e("FirestoreRepo", "Error parsing milk entry during full sync", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepo", "Error fetching all milk entries", e)
+            emptyList()
+        }
+    }
     
     fun getMilkEntriesForYear(userId: String, year: Int): Flow<List<MilkEntry>> = flow {
         try {
@@ -291,6 +320,33 @@ class FirestoreRepository {
             null
         }
     }
+
+    suspend fun getAllMonthlyRatesSync(userId: String): List<MonthlyRate> {
+        return try {
+            val snapshot = db.collection("users")
+                .document(userId)
+                .collection("rates")
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    MonthlyRate(
+                        yearMonth = YearMonth.parse(doc.getString("yearMonth") ?: "", yearMonthFormatter),
+                        ratePerLiter = doc.getDouble("ratePerLiter")?.toFloat() ?: 0f,
+                        defaultQuantity = doc.getDouble("defaultQuantity")?.toFloat() ?: 0f,
+                        userId = doc.getString("userId") ?: ""
+                    )
+                } catch (e: Exception) {
+                    Log.e("FirestoreRepo", "Error parsing monthly rate during full sync", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepo", "Error fetching all monthly rates", e)
+            emptyList()
+        }
+    }
     
     suspend fun deleteMilkEntry(userId: String, date: LocalDate): Result<Unit> {
         return try {
@@ -403,6 +459,34 @@ class FirestoreRepository {
                 isPaid = false,
                 paymentNote = ""
             )
+        }
+    }
+
+    suspend fun getAllMonthlyPaymentsSync(userId: String): List<MonthlyPayment> {
+        return try {
+            val snapshot = db.collection("users")
+                .document(userId)
+                .collection("payments")
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    MonthlyPayment(
+                        yearMonth = YearMonth.parse(doc.getString("yearMonth") ?: "", yearMonthFormatter),
+                        userId = doc.getString("userId") ?: "",
+                        isPaid = doc.getBoolean("isPaid") ?: false,
+                        paymentNote = doc.getString("paymentNote") ?: "",
+                        paidDate = doc.getLong("paidDate")
+                    )
+                } catch (e: Exception) {
+                    Log.e("FirestoreRepo", "Error parsing monthly payment during full sync", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepo", "Error fetching all monthly payments", e)
+            emptyList()
         }
     }
     
