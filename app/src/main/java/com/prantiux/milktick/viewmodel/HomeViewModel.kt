@@ -17,7 +17,10 @@ import java.time.YearMonth
 
 class HomeViewModel : ViewModel() {
     private val firestoreRepository: MainRepository = AppGraph.mainRepository
+    private var todayEntryObserverJob: Job? = null
+    private var monthlyRateObserverJob: Job? = null
     private var syncStateObserverJob: Job? = null
+    private var activeUserId: String? = null
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -168,8 +171,21 @@ class HomeViewModel : ViewModel() {
     }
     
     fun loadDefaultQuantity(userId: String) {
+        if (activeUserId == userId &&
+            todayEntryObserverJob?.isActive == true &&
+            monthlyRateObserverJob?.isActive == true &&
+            syncStateObserverJob?.isActive == true
+        ) {
+            return
+        }
+
+        activeUserId = userId
+
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isCheckingEntry = true)
+            val shouldShowBlockingLoader = _uiState.value.todayEntry == null && _uiState.value.quantityText.isBlank()
+            if (shouldShowBlockingLoader) {
+                _uiState.value = _uiState.value.copy(isCheckingEntry = true)
+            }
             
             val monthlyRate = firestoreRepository.getMonthlyRate(userId, YearMonth.now())
             val defaultQuantity = monthlyRate?.defaultQuantity ?: 0f
@@ -208,24 +224,106 @@ class HomeViewModel : ViewModel() {
                 )
             }
 
-            observeTodaySyncState(userId)
+            observeTodayEntry(userId)
+            observeMonthlyRate(userId)
+            observeGlobalSyncState(userId)
         }
     }
 
-    private fun observeTodaySyncState(userId: String) {
+    private fun observeTodayEntry(userId: String) {
+        todayEntryObserverJob?.cancel()
+        todayEntryObserverJob = viewModelScope.launch {
+            firestoreRepository.observeEntryForDate(userId, LocalDate.now()).collect { entry ->
+                val currentState = _uiState.value
+                if (entry != null) {
+                    _uiState.value = currentState.copy(
+                        hasEntryToday = true,
+                        todayEntry = entry,
+                        brought = entry.brought,
+                        quantity = entry.quantity,
+                        quantityText = entry.quantity.toString(),
+                        note = entry.note ?: "",
+                        isEditMode = false,
+                        isCheckingEntry = false,
+                        saveButtonState = SaveButtonState.HIDDEN
+                    )
+                } else {
+                    val defaultQuantityText = if (currentState.defaultQuantity > 0) currentState.defaultQuantity.toString() else ""
+                    _uiState.value = currentState.copy(
+                        hasEntryToday = false,
+                        todayEntry = null,
+                        brought = false,
+                        quantity = currentState.defaultQuantity,
+                        quantityText = defaultQuantityText,
+                        note = "",
+                        isEditMode = false,
+                        isCheckingEntry = false,
+                        saveButtonState = SaveButtonState.SAVE
+                    )
+                }
+            }
+        }
+    }
+
+    private fun observeMonthlyRate(userId: String) {
+        monthlyRateObserverJob?.cancel()
+        monthlyRateObserverJob = viewModelScope.launch {
+            firestoreRepository.observeMonthlyRate(userId, YearMonth.now()).collect { rate ->
+                val currentState = _uiState.value
+                val defaultQuantity = rate?.defaultQuantity ?: 0f
+                val shouldRefreshInputs = !currentState.hasEntryToday && !currentState.isEditMode
+                _uiState.value = currentState.copy(
+                    defaultQuantity = defaultQuantity,
+                    quantity = if (shouldRefreshInputs) defaultQuantity else currentState.quantity,
+                    quantityText = if (shouldRefreshInputs) {
+                        if (defaultQuantity > 0) defaultQuantity.toString() else ""
+                    } else {
+                        currentState.quantityText
+                    }
+                )
+            }
+        }
+    }
+
+    private fun observeGlobalSyncState(userId: String) {
         syncStateObserverJob?.cancel()
         syncStateObserverJob = viewModelScope.launch {
-            firestoreRepository.observeEntrySyncState(userId, LocalDate.now()).collect { state ->
-                _uiState.value = _uiState.value.copy(syncState = state ?: SyncState.SYNCED)
+            firestoreRepository.observeGlobalSyncState(userId).collect { state ->
+                _uiState.value = _uiState.value.copy(syncState = state)
             }
         }
     }
     
     fun toggleEditMode() {
         val currentState = _uiState.value
+        if (currentState.isEditMode) {
+            val savedEntry = currentState.todayEntry
+            _uiState.value = if (savedEntry != null) {
+                currentState.copy(
+                    isEditMode = false,
+                    brought = savedEntry.brought,
+                    quantity = savedEntry.quantity,
+                    quantityText = savedEntry.quantity.toString(),
+                    note = savedEntry.note ?: "",
+                    saveButtonState = SaveButtonState.HIDDEN
+                )
+            } else {
+                val defaultQuantityText = if (currentState.defaultQuantity > 0) currentState.defaultQuantity.toString() else ""
+                currentState.copy(
+                    isEditMode = false,
+                    brought = false,
+                    quantity = currentState.defaultQuantity,
+                    quantityText = defaultQuantityText,
+                    note = "",
+                    saveButtonState = SaveButtonState.HIDDEN
+                )
+            }
+            return
+        }
+
         _uiState.value = currentState.copy(
-            isEditMode = !currentState.isEditMode,
-            saveButtonState = if (!currentState.isEditMode) resolveButtonState(currentState.copy(isEditMode = true)) else SaveButtonState.HIDDEN
+            isEditMode = true,
+            saveButtonState = resolveButtonState(currentState.copy(isEditMode = true))
         )
     }
     
