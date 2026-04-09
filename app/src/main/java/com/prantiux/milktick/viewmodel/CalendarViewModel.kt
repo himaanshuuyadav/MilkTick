@@ -8,6 +8,7 @@ import com.prantiux.milktick.data.local.SyncState
 import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,7 @@ data class CalendarUiState(
     val isEditingPayment: Boolean = false,
     val defaultQuantity: Float = 0f,
     val monthSyncState: SyncState = SyncState.SYNCED,
+    val loadedYearMonth: YearMonth? = null,
     val error: String? = null
 )
 
@@ -45,17 +47,27 @@ class CalendarViewModel(
     
     private var currentUserId: String = ""
     private var currentYearMonth: YearMonth? = null
+    private var monthDataObserverJob: Job? = null
     private var monthSyncObserverJob: Job? = null
     
     fun loadMonthData(userId: String, yearMonth: YearMonth) {
+        val isSameRequest = currentUserId == userId && currentYearMonth == yearMonth
+        if (isSameRequest && monthDataObserverJob?.isActive == true) {
+            return
+        }
+
         currentUserId = userId
         currentYearMonth = yearMonth
-        
-        viewModelScope.launch {
+
+        val shouldShowBlockingLoader = _uiState.value.loadedYearMonth != yearMonth
+        if (shouldShowBlockingLoader) {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
-            try {
-                val entries = repository.getMilkEntriesForMonthSync(userId, yearMonth)
+        }
+
+        monthDataObserverJob?.cancel()
+        monthDataObserverJob = viewModelScope.launch {
+            repository.getMilkEntriesForMonth(userId, yearMonth).collectLatest { entries ->
+                try {
                 val datesWithEntries = entries.filter { it.brought }.map { it.date }.toSet()
                 val datesWithNoDelivery = entries.filter { !it.brought }.map { it.date }.toSet()
                 val totalQuantity = entries.filter { it.brought }.sumOf { it.quantity.toDouble() }
@@ -90,17 +102,20 @@ class CalendarViewModel(
                     isPaid = payment?.isPaid ?: false,
                     paymentNote = payment?.paymentNote ?: "",
                     isEditingPayment = false,
-                    monthSyncState = SyncState.SYNCED
+                    monthSyncState = _uiState.value.monthSyncState,
+                    loadedYearMonth = yearMonth
                 )
 
-                observeMonthSyncState(userId, yearMonth)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message
-                )
+                } catch (e: Exception) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = e.message
+                    )
+                }
             }
         }
+
+        observeMonthSyncState(userId, yearMonth)
     }
 
     private fun observeMonthSyncState(userId: String, yearMonth: YearMonth) {
@@ -171,12 +186,7 @@ class CalendarViewModel(
                 )
                 _uiState.value = _uiState.value.copy(monthSyncState = SyncState.PENDING_UPDATE)
                 repository.saveMilkEntry(entry)
-                
-                // Reload data for the current month
-                currentYearMonth?.let { yearMonth ->
-                    loadMonthData(currentUserId, yearMonth)
-                }
-                
+
                 onComplete()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
