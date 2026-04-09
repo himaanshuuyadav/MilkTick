@@ -17,6 +17,10 @@ class MainRepository(
     private val remoteSyncService: RemoteSyncService,
     private val firestoreRepository: FirestoreRepository = FirestoreRepository()
 ) {
+    private companion object {
+        const val INITIAL_SYNC_VERSION = 2
+    }
+
     private val appPrefs by lazy {
         context.getSharedPreferences("offline_sync_prefs", Context.MODE_PRIVATE)
     }
@@ -42,9 +46,10 @@ class MainRepository(
     }
 
     fun shouldRunInitialSync(userId: String): Boolean {
+        val syncVersion = appPrefs.getInt("initial_sync_version_$userId", 0)
         val isInitialSyncDone = appPrefs.getBoolean("initial_sync_done_$userId", false)
         val isRoomEmpty = runBlocking { localRepository.isRoomEmpty(userId) }
-        return !isInitialSyncDone || isRoomEmpty
+        return syncVersion < INITIAL_SYNC_VERSION || !isInitialSyncDone || isRoomEmpty
     }
 
     suspend fun saveMilkEntry(entry: MilkEntry): Result<Unit> {
@@ -73,6 +78,14 @@ class MainRepository(
         return localRepository.getMonthlyRate(userId, yearMonth)
     }
 
+    fun observeMonthlyRate(userId: String, yearMonth: YearMonth): Flow<MonthlyRate?> {
+        return localRepository.observeMonthlyRate(userId, yearMonth)
+    }
+
+    fun observeEntryForDate(userId: String, date: LocalDate): Flow<MilkEntry?> {
+        return localRepository.observeEntryForDate(userId, date)
+    }
+
     suspend fun saveMonthlyPayment(payment: MonthlyPayment): Result<Unit> {
         val existing = localRepository.getMonthlyPayment(payment.userId, payment.yearMonth)
         val pendingState = if (existing == null) SyncState.PENDING_CREATE else SyncState.PENDING_UPDATE
@@ -94,12 +107,14 @@ class MainRepository(
 
     suspend fun performInitialSyncIfNeeded(userId: String) {
         val key = "initial_sync_done_$userId"
+        val versionKey = "initial_sync_version_$userId"
         val isInitialSyncDone = appPrefs.getBoolean(key, false)
+        val syncVersion = appPrefs.getInt(versionKey, 0)
         val isRoomEmpty = localRepository.isRoomEmpty(userId)
-        if (!isInitialSyncDone || isRoomEmpty) {
-            remoteSyncService.pullLatestEntries(userId, 0L, monthsBack = 3)
-            remoteSyncService.pullLatestRates(userId, 0L, monthsBack = 3)
+        if (syncVersion < INITIAL_SYNC_VERSION || !isInitialSyncDone || isRoomEmpty) {
+            remoteSyncService.pullAllUserData(userId)
             appPrefs.edit().putBoolean(key, true).apply()
+            appPrefs.edit().putInt(versionKey, INITIAL_SYNC_VERSION).apply()
             triggerSync()
         }
     }
@@ -114,6 +129,10 @@ class MainRepository(
 
     fun observeRateSyncState(userId: String, yearMonth: YearMonth): Flow<SyncState?> {
         return localRepository.observeRateSyncState(userId, yearMonth)
+    }
+
+    fun observeGlobalSyncState(userId: String): Flow<SyncState> {
+        return localRepository.observeGlobalSyncState(userId)
     }
 
     suspend fun getMonthlyTotalQuantity(userId: String, yearMonth: YearMonth): Float {
@@ -136,8 +155,12 @@ class MainRepository(
         val entriesLastSync = localRepository.getLastSync(entriesSyncKey) ?: 0L
         val ratesLastSync = localRepository.getLastSync(ratesSyncKey) ?: 0L
 
-        remoteSyncService.pullLatestEntries(userId, entriesLastSync, monthsBack = 3)
-        remoteSyncService.pullLatestRates(userId, ratesLastSync, monthsBack = 3)
+        remoteSyncService.pullLatestEntries(userId, entriesLastSync, monthsBack = 4)
+        remoteSyncService.pullLatestRates(userId, ratesLastSync, monthsBack = 4)
+    }
+
+    suspend fun markAllPendingAsFailed() {
+        remoteSyncService.markAllPendingAsFailed()
     }
 
     fun triggerSync() {
