@@ -1,18 +1,22 @@
 package com.prantiux.milktick.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.prantiux.milktick.ui.screens.*
+import com.prantiux.milktick.viewmodel.CalendarViewModel
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Auth.route
 ) {
+    val calendarViewModel: CalendarViewModel = viewModel()
+
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.Auth.route) {
             AuthScreen(navController = navController)
@@ -53,7 +57,12 @@ fun NavGraph(
         composable(route = Screen.Calendar.route, arguments = listOf(navArgument("month") { type = NavType.IntType }, navArgument("year") { type = NavType.IntType })) { backStackEntry ->
             val month = backStackEntry.arguments?.getInt("month") ?: 0
             val year = backStackEntry.arguments?.getInt("year") ?: 0
-            CalendarScreen(month = month, year = year, navController = navController)
+            CalendarScreen(
+                month = month,
+                year = year,
+                navController = navController,
+                calendarViewModel = calendarViewModel
+            )
         }
     }
 }
