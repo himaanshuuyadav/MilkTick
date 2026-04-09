@@ -17,7 +17,6 @@ object SyncWorkScheduler {
 
     fun enqueueOneTimeSync(context: Context) {
         val request = OneTimeWorkRequestBuilder<SyncWorker>()
-            .setConstraints(networkConstraints())
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
             .build()
 
