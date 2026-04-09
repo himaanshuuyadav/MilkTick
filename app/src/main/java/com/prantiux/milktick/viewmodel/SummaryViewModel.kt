@@ -9,6 +9,8 @@ import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import com.prantiux.milktick.utils.CsvExporter
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,16 +20,19 @@ import java.time.YearMonth
 class SummaryViewModel : ViewModel() {
     private val firestoreRepository: MainRepository = AppGraph.mainRepository
     private val csvExporter = CsvExporter()
+    private var monthlyDataJob: Job? = null
     
     private val _uiState = MutableStateFlow(SummaryUiState())
     val uiState: StateFlow<SummaryUiState> = _uiState.asStateFlow()
     
     fun setSelectedYearMonth(yearMonth: YearMonth) {
+        if (_uiState.value.selectedYearMonth == yearMonth) return
         _uiState.value = _uiState.value.copy(selectedYearMonth = yearMonth)
         loadMonthlyData()
     }
     
     fun setCurrentUserId(userId: String) {
+        if (_uiState.value.currentUserId == userId) return
         _uiState.value = _uiState.value.copy(currentUserId = userId)
         loadMonthlyData()
     }
@@ -41,10 +46,15 @@ class SummaryViewModel : ViewModel() {
         val yearMonth = _uiState.value.selectedYearMonth
         
         if (userId.isNotBlank()) {
-            viewModelScope.launch {
+            monthlyDataJob?.cancel()
+
+            val shouldShowBlockingLoader = _uiState.value.entries.isEmpty()
+            if (shouldShowBlockingLoader) {
                 _uiState.value = _uiState.value.copy(isLoading = true)
-                
-                firestoreRepository.getMilkEntriesForMonth(userId, yearMonth).collect { entries ->
+            }
+
+            monthlyDataJob = viewModelScope.launch {
+                firestoreRepository.getMilkEntriesForMonth(userId, yearMonth).collectLatest { entries ->
                     val rate = firestoreRepository.getMonthlyRate(userId, yearMonth)
                     val ratePerLiter = rate?.ratePerLiter ?: 0f
                     
