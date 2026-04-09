@@ -26,6 +26,7 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.prantiux.milktick.R
 import com.prantiux.milktick.viewmodel.AnalyticsViewModel
 import com.prantiux.milktick.viewmodel.AppViewModel
+import com.prantiux.milktick.ui.components.MilkTickAnalyticsSkeleton
 import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
 import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 import java.time.LocalDate
@@ -74,9 +75,13 @@ fun AnalyticsScreen(
             )
 
             if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 16.dp, end = 16.dp, top = 144.dp, bottom = 16.dp)
+                ) {
+                    MilkTickAnalyticsSkeleton(modifier = Modifier.fillMaxSize())
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
