@@ -8,6 +8,7 @@ import com.prantiux.milktick.data.local.MilkEntryEntity
 import com.prantiux.milktick.data.local.MonthlyPaymentEntity
 import com.prantiux.milktick.data.local.MonthlyRateEntity
 import com.prantiux.milktick.data.local.SyncState
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -42,6 +43,12 @@ class LocalRepository(
         return database.milkEntryDao().getEntryForDate(userId, date.format(dateFormatter))?.toDomain()
     }
 
+    fun observeEntryForDate(userId: String, date: LocalDate): Flow<MilkEntry?> {
+        return database.milkEntryDao().observeEntryForDate(userId, date.format(dateFormatter)).map { entity ->
+            entity?.toDomain()
+        }
+    }
+
     suspend fun getAvailableYears(userId: String): List<Int> {
         val years = database.milkEntryDao().getAvailableYears(userId)
         val currentYear = LocalDate.now().year
@@ -62,6 +69,32 @@ class LocalRepository(
 
     fun observeRateSyncState(userId: String, yearMonth: YearMonth): Flow<SyncState?> {
         return database.monthlyRateDao().observeRateSyncState(userId, yearMonth.format(yearMonthFormatter))
+    }
+
+    fun observeGlobalSyncState(userId: String): Flow<SyncState> {
+        val failedCountFlow = combine(
+            database.milkEntryDao().observeFailedCountForUser(userId),
+            database.monthlyRateDao().observeFailedCountForUser(userId),
+            database.monthlyPaymentDao().observeFailedCountForUser(userId)
+        ) { entryFailed, rateFailed, paymentFailed ->
+            entryFailed + rateFailed + paymentFailed
+        }
+
+        val pendingCountFlow = combine(
+            database.milkEntryDao().observePendingCountForUser(userId),
+            database.monthlyRateDao().observePendingCountForUser(userId),
+            database.monthlyPaymentDao().observePendingCountForUser(userId)
+        ) { entryPending, ratePending, paymentPending ->
+            entryPending + ratePending + paymentPending
+        }
+
+        return combine(failedCountFlow, pendingCountFlow) { failedCount, pendingCount ->
+            when {
+                failedCount > 0 -> SyncState.FAILED
+                pendingCount > 0 -> SyncState.PENDING_UPDATE
+                else -> SyncState.SYNCED
+            }
+        }
     }
 
     suspend fun getMonthlyTotalQuantity(userId: String, yearMonth: YearMonth): Float {
@@ -125,6 +158,12 @@ class LocalRepository(
 
     suspend fun getMonthlyRate(userId: String, yearMonth: YearMonth): MonthlyRate? {
         return database.monthlyRateDao().getRate(userId, yearMonth.format(yearMonthFormatter))?.toDomain()
+    }
+
+    fun observeMonthlyRate(userId: String, yearMonth: YearMonth): Flow<MonthlyRate?> {
+        return database.monthlyRateDao().observeRate(userId, yearMonth.format(yearMonthFormatter)).map { entity ->
+            entity?.toDomain()
+        }
     }
 
     suspend fun saveMonthlyPayment(payment: MonthlyPayment, state: SyncState) {
