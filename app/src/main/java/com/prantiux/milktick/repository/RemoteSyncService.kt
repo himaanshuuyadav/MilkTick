@@ -13,6 +13,18 @@ class RemoteSyncService(
 ) {
     private val tag = "RemoteSyncService"
 
+    suspend fun markAllPendingAsFailed() {
+        localRepository.getPendingEntryEntities().forEach { entity ->
+            localRepository.markEntryFailed(entity.userId, entity.date)
+        }
+        localRepository.getPendingRateEntities().forEach { entity ->
+            localRepository.markRateFailed(entity.userId, entity.yearMonth)
+        }
+        localRepository.getPendingPaymentEntities().forEach { entity ->
+            localRepository.markPaymentFailed(entity.userId, entity.yearMonth)
+        }
+    }
+
     suspend fun pushPendingEntries() {
         localRepository.getPendingEntryEntities().forEach { entity ->
             try {
@@ -100,6 +112,11 @@ class RemoteSyncService(
         localRepository.updateLastSync("entries:$userId", if (lastSyncedAt > 0) System.currentTimeMillis() else System.currentTimeMillis())
     }
 
+    suspend fun pullAllEntries(userId: String) {
+        firestoreRepository.getAllMilkEntriesSync(userId).forEach { localRepository.saveMilkEntry(it, SyncState.SYNCED) }
+        localRepository.updateLastSync("entries:$userId", System.currentTimeMillis())
+    }
+
     suspend fun pullLatestRates(userId: String, lastSyncedAt: Long, monthsBack: Int = 3) {
         val now = YearMonth.now()
         repeat(monthsBack) { idx ->
@@ -114,5 +131,16 @@ class RemoteSyncService(
             }
         }
         localRepository.updateLastSync("rates:$userId", if (lastSyncedAt > 0) System.currentTimeMillis() else System.currentTimeMillis())
+    }
+
+    suspend fun pullAllRates(userId: String) {
+        firestoreRepository.getAllMonthlyRatesSync(userId).forEach { localRepository.saveMonthlyRate(it, SyncState.SYNCED) }
+        firestoreRepository.getAllMonthlyPaymentsSync(userId).forEach { localRepository.saveMonthlyPayment(it, SyncState.SYNCED) }
+        localRepository.updateLastSync("rates:$userId", System.currentTimeMillis())
+    }
+
+    suspend fun pullAllUserData(userId: String) {
+        pullAllEntries(userId)
+        pullAllRates(userId)
     }
 }
