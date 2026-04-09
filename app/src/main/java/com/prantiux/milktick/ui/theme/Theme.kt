@@ -75,6 +75,7 @@ private fun getLightColorScheme(accentColor: androidx.compose.ui.graphics.Color)
 )
 
 @Composable
+@Suppress("DEPRECATION")
 fun MilkTickTheme(
     themeMode: ThemeMode = ThemeMode.AUTO,
     accentColor: androidx.compose.ui.graphics.Color = Color(0xFF146EBE), // Azure default
