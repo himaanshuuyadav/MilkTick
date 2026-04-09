@@ -126,6 +126,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+@Suppress("DEPRECATION")
 fun MilkTickApp(intent: Intent? = null) {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
@@ -195,7 +196,7 @@ fun MilkTickApp(intent: Intent? = null) {
             bottomBar = {
                 BottomNavigation(
                     currentRoute = currentRoute ?: Screen.Home.route,
-                    onNavigate = { route -> 
+                    onNavigate = { route ->
                         // Navigate with single top to avoid multiple instances
                         navController.navigate(route) {
                             popUpTo(Screen.Home.route) {
@@ -207,7 +208,7 @@ fun MilkTickApp(intent: Intent? = null) {
                     }
                 )
             }
-        ) { paddingValues ->
+        ) { _ ->
             // Only content slides, navigation stays fixed
             // Don't pass paddingValues here since screens have their own Scaffolds
             NavGraph(
