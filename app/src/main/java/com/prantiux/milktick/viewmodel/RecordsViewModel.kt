@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,19 +14,22 @@ import java.time.YearMonth
 
 class RecordsViewModel : ViewModel() {
     private val firestoreRepository: MainRepository = AppGraph.mainRepository
+    private var yearObserverJob: Job? = null
     
     private val _uiState = MutableStateFlow(RecordsUiState())
     val uiState: StateFlow<RecordsUiState> = _uiState.asStateFlow()
     
     fun setSelectedYear(year: Int) {
+        if (_uiState.value.selectedYear == year) return
         _uiState.value = _uiState.value.copy(selectedYear = year)
-        loadYearData()
+        observeYearData()
     }
     
     fun setCurrentUserId(userId: String) {
+        if (_uiState.value.currentUserId == userId) return
         _uiState.value = _uiState.value.copy(currentUserId = userId)
         loadAvailableYears()
-        loadYearData()
+        observeYearData()
     }
     
     private fun loadAvailableYears() {
@@ -38,17 +43,30 @@ class RecordsViewModel : ViewModel() {
     }
     
     fun refreshData() {
-        loadYearData()
+        loadAvailableYears()
+        observeYearData()
     }
     
-    private fun loadYearData() {
+    private fun observeYearData() {
         val userId = _uiState.value.currentUserId
-        val year = _uiState.value.selectedYear
+        val selectedYear = _uiState.value.selectedYear
 
-         if (userId.isNotBlank()) {
-            viewModelScope.launch {
-                _uiState.value = _uiState.value.copy(isLoading = true)
-                val monthlySummaries = calculateMonthlySummaries(userId)
+        if (userId.isBlank()) return
+
+        yearObserverJob?.cancel()
+
+        val shouldShowBlockingLoader = _uiState.value.monthlySummaries.isEmpty()
+        if (shouldShowBlockingLoader) {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+        }
+
+        yearObserverJob = viewModelScope.launch {
+            firestoreRepository.getMilkEntriesForYear(userId, selectedYear).collectLatest { entries ->
+                val monthlySummaries = calculateMonthlySummaries(
+                    userId = userId,
+                    selectedYear = selectedYear,
+                    yearEntries = entries
+                )
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     monthlySummaries = monthlySummaries
@@ -57,13 +75,20 @@ class RecordsViewModel : ViewModel() {
         }
     }
     
-    private suspend fun calculateMonthlySummaries(userId: String): List<MonthlySummaryData> {
+    private suspend fun calculateMonthlySummaries(
+        userId: String,
+        selectedYear: Int,
+        yearEntries: List<com.prantiux.milktick.data.MilkEntry>
+    ): List<MonthlySummaryData> {
         val monthlySummaries = mutableListOf<MonthlySummaryData>()
 
         for (month in 1..12) {
-            val yearMonth = YearMonth.of(_uiState.value.selectedYear, month)
-            val totalDays = firestoreRepository.getMonthlyDeliveryDays(userId, yearMonth)
-            val totalLiters = firestoreRepository.getMonthlyTotalQuantity(userId, yearMonth)
+            val yearMonth = YearMonth.of(selectedYear, month)
+            val monthEntries = yearEntries.filter { entry ->
+                entry.date.year == selectedYear && entry.date.monthValue == month && entry.brought
+            }
+            val totalDays = monthEntries.size
+            val totalLiters = monthEntries.sumOf { it.quantity.toDouble() }.toFloat()
             
             // Get rate for this month
             val rate = firestoreRepository.getMonthlyRate(userId, yearMonth)
