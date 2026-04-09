@@ -14,6 +14,9 @@ interface MilkEntryDao {
     @Query("SELECT * FROM milk_entries WHERE userId = :userId AND date = :date LIMIT 1")
     suspend fun getEntryForDate(userId: String, date: String): MilkEntryEntity?
 
+    @Query("SELECT * FROM milk_entries WHERE userId = :userId AND date = :date LIMIT 1")
+    fun observeEntryForDate(userId: String, date: String): Flow<MilkEntryEntity?>
+
     @Query("SELECT * FROM milk_entries WHERE userId = :userId AND date LIKE :yearPrefix AND isDeleted = 0 ORDER BY date DESC")
     fun getEntriesForYear(userId: String, yearPrefix: String): Flow<List<MilkEntryEntity>>
 
@@ -25,6 +28,12 @@ interface MilkEntryDao {
 
     @Query("SELECT syncState FROM milk_entries WHERE userId = :userId AND date = :date LIMIT 1")
     fun observeEntrySyncState(userId: String, date: String): Flow<SyncState?>
+
+    @Query("SELECT COUNT(*) FROM milk_entries WHERE userId = :userId AND syncState = 'FAILED'")
+    fun observeFailedCountForUser(userId: String): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM milk_entries WHERE userId = :userId AND syncState IN ('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')")
+    fun observePendingCountForUser(userId: String): Flow<Int>
 
     @Query(
         """
