@@ -15,6 +15,7 @@ import java.time.YearMonth
 
 class RateViewModel : ViewModel() {
     private val firestoreRepository: MainRepository = AppGraph.mainRepository
+    private var monthlyRateObserverJob: Job? = null
     private var syncStateObserverJob: Job? = null
     
     private val _uiState = MutableStateFlow(RateUiState())
@@ -124,7 +125,39 @@ class RateViewModel : ViewModel() {
                     syncState = SyncState.SYNCED
                 )
 
+                observeMonthlyRate(userId, _uiState.value.selectedYearMonth)
                 observeRateSyncState(userId, _uiState.value.selectedYearMonth)
+            }
+        }
+    }
+
+    private fun observeMonthlyRate(userId: String, yearMonth: YearMonth) {
+        monthlyRateObserverJob?.cancel()
+        monthlyRateObserverJob = viewModelScope.launch {
+            firestoreRepository.observeMonthlyRate(userId, yearMonth).collect { rate ->
+                val currentState = _uiState.value
+                val hasData = rate != null && rate.ratePerLiter > 0
+                val shouldRefreshInputs = !currentState.isEditMode
+                _uiState.value = currentState.copy(
+                    rate = rate?.ratePerLiter ?: 0f,
+                    rateText = if (shouldRefreshInputs) {
+                        if (rate?.ratePerLiter != null && rate.ratePerLiter > 0) rate.ratePerLiter.toString() else ""
+                    } else {
+                        currentState.rateText
+                    },
+                    defaultQuantity = rate?.defaultQuantity ?: 0f,
+                    defaultQuantityText = if (shouldRefreshInputs) {
+                        if (rate?.defaultQuantity != null && rate.defaultQuantity > 0) rate.defaultQuantity.toString() else ""
+                    } else {
+                        currentState.defaultQuantityText
+                    },
+                    hasData = hasData,
+                    saveButtonState = when {
+                        currentState.isEditMode -> currentState.saveButtonState
+                        hasData -> SaveButtonState.HIDDEN
+                        else -> SaveButtonState.SAVE
+                    }
+                )
             }
         }
     }
