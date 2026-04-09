@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MonthlyPaymentDao {
@@ -12,6 +13,12 @@ interface MonthlyPaymentDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(payment: MonthlyPaymentEntity)
+
+    @Query("SELECT COUNT(*) FROM monthly_payments WHERE userId = :userId AND syncState = 'FAILED'")
+    fun observeFailedCountForUser(userId: String): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM monthly_payments WHERE userId = :userId AND syncState IN ('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')")
+    fun observePendingCountForUser(userId: String): Flow<Int>
 
     @Query("SELECT * FROM monthly_payments WHERE syncState != 'SYNCED'")
     suspend fun getPendingSyncPayments(): List<MonthlyPaymentEntity>
