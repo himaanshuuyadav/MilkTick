@@ -2,6 +2,7 @@ package com.prantiux.milktick.ui.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -29,7 +30,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prantiux.milktick.R
+import com.prantiux.milktick.ui.components.MilkTickRateEditorSkeleton
 import com.prantiux.milktick.viewmodel.AppViewModel
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.RateViewModel
@@ -88,7 +89,9 @@ fun RateEditorContent(
     }
 
     Column(
-        modifier = modifier.padding(bottom = bottomSpacing),
+        modifier = modifier
+            .padding(bottom = bottomSpacing)
+            .animateContentSize(animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing)),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Card(
@@ -147,7 +150,7 @@ fun RateEditorContent(
                     .height(220.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                MilkTickRateEditorSkeleton(modifier = Modifier.fillMaxWidth())
             }
         } else {
             Card(
@@ -159,7 +162,9 @@ fun RateEditorContent(
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .animateContentSize(animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing)),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     Row(
@@ -175,20 +180,37 @@ fun RateEditorContent(
                         )
 
                         AnimatedVisibility(
-                            visible = uiState.hasData && !uiState.isEditMode,
+                            visible = uiState.hasData,
                             enter = scaleIn(animationSpec = tween(300)) + fadeIn(),
                             exit = scaleOut(animationSpec = tween(300)) + fadeOut()
                         ) {
                             IconButton(
-                                onClick = { rateViewModel.enableEditMode() },
+                                onClick = {
+                                    if (uiState.isEditMode) {
+                                        rateViewModel.cancelEdit()
+                                    } else {
+                                        rateViewModel.enableEditMode()
+                                    }
+                                },
                                 modifier = Modifier.size(40.dp)
                             ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_fa_pen_to_square),
-                                    contentDescription = "Edit",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                AnimatedContent(
+                                    targetState = uiState.isEditMode,
+                                    transitionSpec = {
+                                        (scaleIn(animationSpec = tween(220)) + fadeIn(animationSpec = tween(220))) togetherWith
+                                            (scaleOut(animationSpec = tween(180)) + fadeOut(animationSpec = tween(180)))
+                                    },
+                                    label = "rateEditCancelIcon"
+                                ) { isEditMode ->
+                                    Icon(
+                                        painter = painterResource(
+                                            if (isEditMode) R.drawable.ic_fa_circle_xmark else R.drawable.ic_fa_pen_to_square
+                                        ),
+                                        contentDescription = if (isEditMode) "Cancel edit" else "Edit",
+                                        tint = if (isEditMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
