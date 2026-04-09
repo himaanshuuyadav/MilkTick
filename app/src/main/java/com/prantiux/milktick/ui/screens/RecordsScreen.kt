@@ -26,13 +26,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
+import com.prantiux.milktick.ui.components.MilkTickExportPreviewSkeleton
+import com.prantiux.milktick.ui.components.MilkTickExpressiveLoader
 import com.prantiux.milktick.ui.components.MilkTickFloatingHeader
+import com.prantiux.milktick.ui.components.MilkTickRecordsMonthListSkeleton
 import com.prantiux.milktick.ui.components.MilkTickSystemBarsGradient
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.RecordsViewModel
 import com.prantiux.milktick.viewmodel.AppViewModel
 import java.time.Month
-import java.time.Year
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,90 +106,97 @@ fun RecordsScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(104.dp)
                         .clip(RoundedCornerShape(24.dp)),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Select Year",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        
-                        Box {
-                            Card(
-                                modifier = Modifier
-                                    .clickable { showYearDropdown = true },
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Select Year",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Box {
+                                Card(
+                                    modifier = Modifier
+                                        .clickable { showYearDropdown = true },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
-                                    Text(
-                                        text = uiState.selectedYear.toString(),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_chevron_down),
-                                        contentDescription = "Select Year",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                            
-                            DropdownMenu(
-                                expanded = showYearDropdown,
-                                onDismissRequest = { showYearDropdown = false },
-                                modifier = Modifier
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .clip(RoundedCornerShape(12.dp))
-                            ) {
-                                // Only show years that have entries or current year
-                                uiState.availableYears.forEach { year ->
-                                    DropdownMenuItem(
-                                        text = { 
-                                            Text(
-                                                text = year.toString(),
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = if (year == uiState.selectedYear) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (year == uiState.selectedYear) 
-                                                    MaterialTheme.colorScheme.primary 
-                                                else 
-                                                    MaterialTheme.colorScheme.onSurface
-                                            )
-                                        },
-                                        onClick = {
-                                            recordsViewModel.setSelectedYear(year)
-                                            showYearDropdown = false
-                                        },
-                                        modifier = Modifier.background(
-                                            if (year == uiState.selectedYear)
-                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-                                            else
-                                                MaterialTheme.colorScheme.surface
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = uiState.selectedYear.toString(),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
-                                    )
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_fa_chevron_down),
+                                            contentDescription = "Select Year",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+
+                                DropdownMenu(
+                                    expanded = showYearDropdown,
+                                    onDismissRequest = { showYearDropdown = false },
+                                    modifier = Modifier
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surface,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .clip(RoundedCornerShape(12.dp))
+                                ) {
+                                    // Only show years that have entries or current year
+                                    uiState.availableYears.forEach { year ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = year.toString(),
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = if (year == uiState.selectedYear) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (year == uiState.selectedYear)
+                                                        MaterialTheme.colorScheme.primary
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurface
+                                                )
+                                            },
+                                            onClick = {
+                                                recordsViewModel.setSelectedYear(year)
+                                                showYearDropdown = false
+                                            },
+                                            modifier = Modifier.background(
+                                                if (year == uiState.selectedYear)
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                                                else
+                                                    MaterialTheme.colorScheme.surface
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -215,9 +224,12 @@ fun RecordsScreen(
                                     .padding(32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                MilkTickExpressiveLoader(message = "Loading records...")
                             }
                         }
+                    }
+                    item {
+                        MilkTickRecordsMonthListSkeleton(count = 12)
                     }
                 } else {
                     val months = Month.values().toList()
@@ -298,7 +310,6 @@ fun RecordsScreen(
                 YearExportDialog(
                     year = uiState.selectedYear,
                     userId = userId,
-                    context = androidx.compose.ui.platform.LocalContext.current,
                     onDismiss = { showExportDialog = false },
                     onExportComplete = { message ->
                         exportMessage = message
@@ -341,6 +352,7 @@ fun MonthCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(84.dp)
             .clickable { onMonthClick(month) },
         shape = cardShape,
         colors = CardDefaults.cardColors(
@@ -348,57 +360,64 @@ fun MonthCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = month.name.lowercase().replaceFirstChar { 
-                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "${summaryData?.totalDays ?: 0} days",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = month.name.lowercase().replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = "•",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${summaryData?.totalDays ?: 0} days",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = String.format("%.1fL", summaryData?.totalLiters ?: 0.0f),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                     )
+                ) {
                     Text(
-                        text = String.format("%.1fL", summaryData?.totalLiters ?: 0.0f),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "₹${String.format("%.0f", summaryData?.totalCost ?: 0.0f)}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                     )
                 }
-            }
-            
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
-            ) {
-                Text(
-                    text = "₹${String.format("%.0f", summaryData?.totalCost ?: 0.0f)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                )
             }
         }
     }
@@ -416,7 +435,6 @@ private fun groupedCardShape(index: Int, lastIndex: Int): RoundedCornerShape {
 fun YearExportDialog(
     year: Int,
     userId: String,
-    context: android.content.Context,
     onDismiss: () -> Unit,
     onExportComplete: (String) -> Unit
 ) {
@@ -503,9 +521,9 @@ fun YearExportDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    CircularProgressIndicator()
+                    MilkTickExportPreviewSkeleton(modifier = Modifier.fillMaxWidth())
                 }
             } else {
                 Column(
