@@ -90,8 +90,7 @@ fun RateEditorContent(
 
     Column(
         modifier = modifier
-            .padding(bottom = bottomSpacing)
-            .animateContentSize(animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing)),
+            .padding(bottom = bottomSpacing),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Card(
@@ -358,6 +357,7 @@ fun RateEditorContent(
                 }
             }
         }
+
 
         val interactionSource = remember { MutableInteractionSource() }
         val isPressed by interactionSource.collectIsPressedAsState()
