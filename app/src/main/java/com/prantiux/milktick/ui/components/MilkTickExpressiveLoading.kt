@@ -278,6 +278,7 @@ fun MilkTickSummaryContentSkeleton(
 @Composable
 fun MilkTickCalendarScreenSkeleton(
     message: String,
+    calendarRowCount: Int = 6,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -295,7 +296,8 @@ fun MilkTickCalendarScreenSkeleton(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(24.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -309,7 +311,7 @@ fun MilkTickCalendarScreenSkeleton(
                         SkeletonBlock(modifier = Modifier.size(width = 28.dp, height = 10.dp), alpha = 0.45f)
                     }
                 }
-                repeat(6) {
+                repeat(calendarRowCount.coerceAtLeast(4)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
@@ -324,24 +326,55 @@ fun MilkTickCalendarScreenSkeleton(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(24.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                SkeletonBlock(modifier = Modifier.fillMaxWidth(0.4f).height(16.dp))
+                // Monthly Summary placeholder
+                SkeletonBlock(modifier = Modifier.fillMaxWidth(0.36f).height(18.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     repeat(3) {
-                        SkeletonBlock(modifier = Modifier.size(width = 76.dp, height = 28.dp), alpha = 0.5f)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SkeletonBlock(modifier = Modifier.size(width = 72.dp, height = 12.dp), alpha = 0.42f)
+                            SkeletonBlock(modifier = Modifier.size(width = 64.dp, height = 24.dp), alpha = 0.52f)
+                        }
                     }
                 }
             }
         }
-        SkeletonBlock(modifier = Modifier.fillMaxWidth().height(188.dp), alpha = 0.45f)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Payments placeholder
+                SkeletonBlock(modifier = Modifier.fillMaxWidth(0.26f).height(18.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    repeat(2) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SkeletonBlock(modifier = Modifier.size(width = 84.dp, height = 12.dp), alpha = 0.42f)
+                            SkeletonBlock(modifier = Modifier.size(width = 92.dp, height = 26.dp), alpha = 0.52f)
+                        }
+                    }
+                }
+                SkeletonBlock(modifier = Modifier.fillMaxWidth(0.44f).height(12.dp), alpha = 0.45f)
+                SkeletonBlock(modifier = Modifier.fillMaxWidth().height(56.dp), alpha = 0.52f)
+            }
+        }
     }
 }
 
