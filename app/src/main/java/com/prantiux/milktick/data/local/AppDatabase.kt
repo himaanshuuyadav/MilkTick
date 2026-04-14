@@ -10,16 +10,18 @@ import androidx.room.TypeConverters
     entities = [
         MilkEntryEntity::class,
         MonthlyRateEntity::class,
+        PaymentRecordEntity::class,
         MonthlyPaymentEntity::class,
         SyncMetadataEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun milkEntryDao(): MilkEntryDao
     abstract fun monthlyRateDao(): MonthlyRateDao
+    abstract fun paymentRecordDao(): PaymentRecordDao
     abstract fun monthlyPaymentDao(): MonthlyPaymentDao
     abstract fun syncMetadataDao(): SyncMetadataDao
 
