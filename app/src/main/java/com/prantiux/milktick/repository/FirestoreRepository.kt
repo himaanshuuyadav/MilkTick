@@ -7,10 +7,14 @@ import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyPayment
 import com.prantiux.milktick.data.MonthlyRate
 import com.prantiux.milktick.data.MonthlySummary
+import com.prantiux.milktick.data.PaymentRecord
+import com.prantiux.milktick.data.PaymentRecordType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
@@ -486,6 +490,120 @@ class FirestoreRepository {
             }
         } catch (e: Exception) {
             Log.e("FirestoreRepo", "Error fetching all monthly payments", e)
+            emptyList()
+        }
+    }
+
+    suspend fun savePaymentRecord(record: PaymentRecord): Result<Unit> {
+        return try {
+            val data = mapOf(
+                "id" to record.id,
+                "userId" to record.userId,
+                "amount" to record.amount,
+                "note" to record.note,
+                "recordedAt" to record.recordedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
+                "appliedYearMonth" to record.appliedYearMonth.format(yearMonthFormatter),
+                "type" to record.type.name,
+                "timestamp" to System.currentTimeMillis()
+            )
+
+            db.collection("users")
+                .document(record.userId)
+                .collection("paymentRecords")
+                .document(record.id)
+                .set(data)
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepo", "Error saving payment record", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deletePaymentRecord(userId: String, recordId: String): Result<Unit> {
+        return try {
+            db.collection("users")
+                .document(userId)
+                .collection("paymentRecords")
+                .document(recordId)
+                .delete()
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepo", "Error deleting payment record", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPaymentRecordsForMonth(userId: String, yearMonth: YearMonth): List<PaymentRecord> {
+        return try {
+            val snapshot = db.collection("users")
+                .document(userId)
+                .collection("paymentRecords")
+                .whereEqualTo("appliedYearMonth", yearMonth.format(yearMonthFormatter))
+                .orderBy("recordedAt", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    PaymentRecord(
+                        id = doc.getString("id") ?: doc.id,
+                        userId = doc.getString("userId") ?: userId,
+                        amount = doc.getDouble("amount") ?: 0.0,
+                        note = doc.getString("note") ?: "",
+                        recordedAt = LocalDateTime.ofEpochSecond((doc.getLong("recordedAt") ?: 0L) / 1000, 0, ZoneOffset.UTC),
+                        appliedYearMonth = YearMonth.parse(
+                            doc.getString("appliedYearMonth") ?: yearMonth.format(yearMonthFormatter),
+                            yearMonthFormatter
+                        ),
+                        type = PaymentRecordType.valueOf(doc.getString("type") ?: PaymentRecordType.PAYMENT.name)
+                    )
+                } catch (e: Exception) {
+                    Log.e("FirestoreRepo", "Error parsing payment record", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepo", "Error fetching payment records for month", e)
+            emptyList()
+        }
+    }
+
+    suspend fun getAllPaymentRecordsSync(userId: String): List<PaymentRecord> {
+        return try {
+            val snapshot = db.collection("users")
+                .document(userId)
+                .collection("paymentRecords")
+                .orderBy("recordedAt", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    PaymentRecord(
+                        id = doc.getString("id") ?: doc.id,
+                        userId = doc.getString("userId") ?: userId,
+                        amount = doc.getDouble("amount") ?: 0.0,
+                        note = doc.getString("note") ?: "",
+                        recordedAt = LocalDateTime.ofEpochSecond((doc.getLong("recordedAt") ?: 0L) / 1000, 0, ZoneOffset.UTC),
+                        appliedYearMonth = YearMonth.parse(
+                            doc.getString("appliedYearMonth")
+                                ?: LocalDateTime.ofEpochSecond((doc.getLong("recordedAt") ?: 0L) / 1000, 0, ZoneOffset.UTC)
+                                    .format(yearMonthFormatter),
+                            yearMonthFormatter
+                        ),
+                        type = PaymentRecordType.valueOf(doc.getString("type") ?: PaymentRecordType.PAYMENT.name)
+                    )
+                } catch (e: Exception) {
+                    Log.e("FirestoreRepo", "Error parsing payment record during full sync", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepo", "Error fetching all payment records", e)
             emptyList()
         }
     }
