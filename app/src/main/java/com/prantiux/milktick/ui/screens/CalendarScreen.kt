@@ -1,7 +1,14 @@
 package com.prantiux.milktick.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -17,11 +24,22 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -48,6 +66,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,18 +83,43 @@ fun CalendarScreen(
     
     val yearMonth = YearMonth.of(year, month)
     val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-    val context = androidx.compose.ui.platform.LocalContext.current
-    
+    val calendarCellSize = 40.dp
+    val calendarCellSpacing = 4.dp
+    val calendarGridEdgePadding = 1.dp
+    val firstDayOfWeek = remember(yearMonth) { yearMonth.atDay(1).dayOfWeek.value % 7 }
+    val daysInMonth = remember(yearMonth) { yearMonth.lengthOfMonth() }
+    val calendarRowCount = remember(yearMonth) { (firstDayOfWeek + daysInMonth + 6) / 7 }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var showDateDialog by remember { mutableStateOf(false) }
+    val calendarGridHeight = remember(calendarRowCount) {
+        (calendarCellSize * calendarRowCount) +
+            (calendarCellSpacing * (calendarRowCount - 1)) +
+            (calendarGridEdgePadding * 2)
+    }
+    val calendarBottomInset by animateDpAsState(
+        targetValue = if (showDateDialog && selectedDate != null) 440.dp else 24.dp,
+        label = "calendarBottomInset"
+    )
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
     var showExportMessage by remember { mutableStateOf<String?>(null) }
     var showExportDialog by remember { mutableStateOf(false) }
     var showMonthMenu by remember { mutableStateOf(false) }
     var showUpdateRateDialog by remember { mutableStateOf(false) }
+    var showPaymentSheet by remember { mutableStateOf(false) }
+    val dayCellBounds = remember { mutableStateMapOf<LocalDate, Rect>() }
     var showSkeleton by remember(yearMonth) { mutableStateOf(false) }
     var loadingStartedAtMs by remember(yearMonth) { mutableStateOf(System.currentTimeMillis()) }
     val isTargetMonthReady = uiState.loadedYearMonth == yearMonth
     val shouldRenderSkeleton = showSkeleton || !isTargetMonthReady
+
+    LaunchedEffect(yearMonth) {
+        dayCellBounds.clear()
+    }
+
+    BackHandler(enabled = showDateDialog && selectedDate != null) {
+        showDateDialog = false
+    }
     
     LaunchedEffect(currentUserId, yearMonth) {
         val needsInitialSkeleton = uiState.loadedYearMonth != yearMonth
@@ -117,7 +161,10 @@ fun CalendarScreen(
                 .padding(paddingValues)
         ) {
             if (shouldRenderSkeleton) {
-                MilkTickCalendarScreenSkeleton(message = "Loading calendar...")
+                MilkTickCalendarScreenSkeleton(
+                    message = "Loading calendar...",
+                    calendarRowCount = calendarRowCount
+                )
             } else {
                 MilkTickSubpageSystemBarsGradient()
 
@@ -136,12 +183,9 @@ fun CalendarScreen(
                             DropdownMenu(
                                 expanded = showMonthMenu,
                                 onDismissRequest = { showMonthMenu = false },
-                                modifier = Modifier
-                                    .background(
-                                        MaterialTheme.colorScheme.surface,
-                                        RoundedCornerShape(16.dp)
-                                    )
-                                    .clip(RoundedCornerShape(16.dp))
+                                shape = RoundedCornerShape(24.dp),
+                                tonalElevation = 0.dp,
+                                shadowElevation = 0.dp
                             ) {
                                 DropdownMenuItem(
                                     text = { Text("Export Month Data") },
@@ -182,7 +226,7 @@ fun CalendarScreen(
                         start = 16.dp,
                         end = 16.dp,
                         top = 144.dp,
-                        bottom = 24.dp
+                        bottom = calendarBottomInset
                     )
                 ) {
                     // Calendar Grid
@@ -192,7 +236,8 @@ fun CalendarScreen(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            shape = RoundedCornerShape(24.dp)
                         ) {
                             Column(
                         modifier = Modifier.padding(16.dp),
@@ -225,12 +270,9 @@ fun CalendarScreen(
                             columns = GridCells.Fixed(7),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.height(300.dp)
+                            modifier = Modifier.height(calendarGridHeight),
+                            contentPadding = PaddingValues(vertical = calendarGridEdgePadding)
                         ) {
-                            val firstDayOfMonth = yearMonth.atDay(1)
-                            val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
-                            val daysInMonth = yearMonth.lengthOfMonth()
-                            
                             // Empty cells for days before month starts
                             items(firstDayOfWeek) {
                                 Box(modifier = Modifier.size(40.dp))
@@ -249,6 +291,10 @@ fun CalendarScreen(
                                     hasEntry = hasEntry,
                                     hasNoDelivery = hasNoDelivery,
                                     isToday = isToday,
+                                    isSelected = selectedDate == date && showDateDialog,
+                                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                                        dayCellBounds[date] = coordinates.boundsInRoot()
+                                    },
                                     onClick = {
                                         selectedDate = date
                                         showDateDialog = true
@@ -267,7 +313,8 @@ fun CalendarScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                         ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(20.dp),
@@ -327,7 +374,7 @@ fun CalendarScreen(
                     }
                 }
                 
-                    // Payment Status Card
+                    // Payment Ledger Summary
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -335,231 +382,86 @@ fun CalendarScreen(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(24.dp)
                         ) {
                             Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Header with edit button
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_fa_circle_check),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
                                 Text(
-                                    text = "Payment Status",
+                                    text = "Payments",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
-                            }
-                            
-                            if (!uiState.isEditingPayment) {
-                                IconButton(
-                                    onClick = { calendarViewModel.toggleEditMode() },
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                            CircleShape
-                                        )
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
-                                        contentDescription = "Edit Payment",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-                        
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                        )
-                        
-                        // Payment status toggle buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // Paid button
-                            Card(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable(enabled = uiState.isEditingPayment) { 
-                                        if (uiState.isEditingPayment) {
-                                            calendarViewModel.updatePaymentStatus(true)
-                                        }
-                                    },
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (uiState.isPaid) 
-                                        Color(0xFF4CAF50).copy(alpha = 0.2f)
-                                    else 
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                border = if (uiState.isPaid) 
-                                    androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF4CAF50))
-                                else null
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_circle_check),
-                                        contentDescription = null,
-                                        tint = if (uiState.isPaid) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                    Text(
-                                        text = "Paid",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = if (uiState.isPaid) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (uiState.isPaid) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            
-                            // Unpaid button
-                            Card(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable(enabled = uiState.isEditingPayment) { 
-                                        if (uiState.isEditingPayment) {
-                                            calendarViewModel.updatePaymentStatus(false)
-                                        }
-                                    },
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (!uiState.isPaid) 
-                                        Color(0xFFE57373).copy(alpha = 0.2f)
-                                    else 
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                border = if (!uiState.isPaid) 
-                                    androidx.compose.foundation.BorderStroke(2.dp, Color(0xFFE57373))
-                                else null
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_circle_xmark),
-                                        contentDescription = null,
-                                        tint = if (!uiState.isPaid) Color(0xFFE57373) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                    Text(
-                                        text = "Unpaid",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = if (!uiState.isPaid) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (!uiState.isPaid) Color(0xFFE57373) else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // Payment note section
-                        if (uiState.isEditingPayment || uiState.paymentNote.isNotEmpty()) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Payment Note",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                
-                                if (uiState.isEditingPayment) {
-                                OutlinedTextField(
-                                    value = uiState.paymentNote,
-                                    onValueChange = { calendarViewModel.updatePaymentNote(it) },
-                                    placeholder = { Text("Add note about payment...") },
+
+                                Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        focusedLabelColor = MaterialTheme.colorScheme.primary
-                                    ),
-                                    shape = RoundedCornerShape(16.dp),
-                                    minLines = 3,
-                                    maxLines = 5
-                                )
-                            } else {
-                                if (uiState.paymentNote.isNotEmpty()) {
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        ),
-                                        shape = RoundedCornerShape(16.dp)
-                                    ) {
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
                                         Text(
-                                            text = uiState.paymentNote,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(16.dp)
+                                            text = "Cleared",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "₹${String.format("%.2f", uiState.amountPaid)}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF2E7D32)
+                                        )
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "Open Balance",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "₹${String.format("%.2f", uiState.carryDueAmount)}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (uiState.carryDueAmount > 0) Color(0xFFC62828) else Color(0xFF2E7D32)
                                         )
                                     }
                                 }
-                            }
-                            }
-                        }
-                        
-                        // Action buttons (only shown when editing)
-                        if (uiState.isEditingPayment) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = { calendarViewModel.toggleEditMode() },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.onSurface
+
+                                val clearedIn = uiState.dueClearedIn
+                                if (clearedIn != null) {
+                                    Text(
+                                        text = "Cleared in ${clearedIn.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${clearedIn.year}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF2E7D32)
                                     )
-                                ) {
-                                    Text("Cancel", fontWeight = FontWeight.SemiBold)
                                 }
-                                
+
+                                val manageButtonInteraction = remember { MutableInteractionSource() }
+                                val managePressed by manageButtonInteraction.collectIsPressedAsState()
+                                val manageCorner by animateDpAsState(
+                                    targetValue = if (managePressed) 18.dp else 28.dp,
+                                    label = "manageButtonCorner"
+                                )
+
                                 Button(
-                                    onClick = { calendarViewModel.savePaymentNote() },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(16.dp),
+                                    onClick = { showPaymentSheet = true },
+                                    interactionSource = manageButtonInteraction,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp),
+                                    shape = RoundedCornerShape(manageCorner),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                                     )
                                 ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_circle_check),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
+                                    Text(
+                                        text = "Manage Payments",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onPrimary
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Save", fontWeight = FontWeight.SemiBold)
                                 }
-                            }
-                        }
                             }
                         }
                     }
@@ -618,18 +520,381 @@ fun CalendarScreen(
             }
         }
         
-        // Date Detail Dialog
         if (showDateDialog && selectedDate != null) {
-            DateDetailDialog(
-                date = selectedDate!!,
-                uiState = uiState,
-                onDismiss = { 
-                    showDateDialog = false
-                    selectedDate = null
-                },
-                calendarViewModel = calendarViewModel
+            DateSheetScrimOverlay(
+                holeRects = dayCellBounds.values.toList(),
+                modifier = Modifier.fillMaxSize()
             )
         }
+
+        // Date Detail Sheet
+        AnimatedVisibility(
+            visible = showDateDialog && selectedDate != null,
+            enter = fadeIn(animationSpec = tween(180)) + slideInVertically(animationSpec = tween(260)) { it / 2 },
+            exit = fadeOut(animationSpec = tween(140)) + slideOutVertically(animationSpec = tween(220)) { it / 2 }
+        ) {
+            selectedDate?.let { activeDate ->
+                DateDetailDialog(
+                    date = activeDate,
+                    uiState = uiState,
+                    onDismiss = {
+                        showDateDialog = false
+                    },
+                    calendarViewModel = calendarViewModel
+                )
+            }
+        }
+
+        if (showPaymentSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showPaymentSheet = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                dragHandle = { BottomSheetDefaults.DragHandle() }
+            ) {
+                PaymentLedgerSheet(
+                    uiState = uiState,
+                    onAmountChange = calendarViewModel::updatePaymentInput,
+                    onNoteChange = calendarViewModel::updatePaymentNote,
+                    onSave = {
+                        calendarViewModel.savePaymentRecord {
+                            showPaymentSheet = false
+                        }
+                    },
+                    onAddPreviousDue = {
+                        calendarViewModel.savePreviousDueAdjustment {
+                            showPaymentSheet = false
+                        }
+                    },
+                    onDeleteRecord = { recordId ->
+                        calendarViewModel.deletePaymentRecord(recordId)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DateSheetScrimOverlay(
+    holeRects: List<Rect>,
+    modifier: Modifier = Modifier
+) {
+    val holeCornerRadius = with(LocalDensity.current) { 14.dp.toPx() }
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+            .drawWithContent {
+                drawRect(Color.Black.copy(alpha = 0.34f))
+                holeRects.forEach { rect ->
+                    drawRoundRect(
+                        color = Color.Transparent,
+                        topLeft = rect.topLeft,
+                        size = rect.size,
+                        cornerRadius = CornerRadius(holeCornerRadius, holeCornerRadius),
+                        blendMode = BlendMode.Clear
+                    )
+                }
+            }
+    )
+}
+
+@Composable
+private fun PaymentLedgerSheet(
+    uiState: CalendarUiState,
+    onAmountChange: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onAddPreviousDue: () -> Unit,
+    onDeleteRecord: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expandedRecordId by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Record Payment",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Settled: ₹${String.format("%.2f", uiState.amountPaid)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF2E7D32)
+            )
+            Text(
+                text = "Open Balance: ₹${String.format("%.2f", uiState.carryDueAmount)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (uiState.carryDueAmount > 0) Color(0xFFC62828) else Color(0xFF2E7D32)
+            )
+        }
+
+        val sheetClearedIn = uiState.dueClearedIn
+        if (sheetClearedIn != null) {
+            Text(
+                text = "Due cleared in ${sheetClearedIn.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${sheetClearedIn.year}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF2E7D32)
+            )
+        }
+
+        if (uiState.advanceCredit > 0) {
+            Text(
+                text = "Advance Credit: ₹${String.format("%.2f", uiState.advanceCredit)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF2E7D32)
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = uiState.paymentInputAmount,
+                onValueChange = onAmountChange,
+                label = { Text("Amount") },
+                placeholder = { Text("Enter payment amount") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(28.dp)
+            )
+
+            OutlinedTextField(
+                value = uiState.paymentInputNote,
+                onValueChange = onNoteChange,
+                label = { Text("Note (optional)") },
+                placeholder = { Text("UPI / cash / previous due details") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                minLines = 2,
+                maxLines = 4
+            )
+        }
+
+        Text(
+            text = "Tip: Add Payment reduces due. Add Previous Due increases carry due.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val isAddPaymentLoading = uiState.activePaymentAction == com.prantiux.milktick.viewmodel.PaymentAction.ADD_PAYMENT && uiState.isSavingPayment
+            val isAddDueLoading = uiState.activePaymentAction == com.prantiux.milktick.viewmodel.PaymentAction.ADD_PREVIOUS_DUE && uiState.isSavingPayment
+
+            val addPaymentInteraction = remember { MutableInteractionSource() }
+            val addPaymentPressed by addPaymentInteraction.collectIsPressedAsState()
+            val addPaymentInnerCorner by animateDpAsState(
+                targetValue = if (addPaymentPressed || isAddPaymentLoading) 28.dp else 4.dp,
+                label = "addPaymentInnerCorner"
+            )
+
+            val addDueInteraction = remember { MutableInteractionSource() }
+            val addDuePressed by addDueInteraction.collectIsPressedAsState()
+            val addDueInnerCorner by animateDpAsState(
+                targetValue = if (addDuePressed || isAddDueLoading) 28.dp else 4.dp,
+                label = "addDueInnerCorner"
+            )
+
+            val leftButtonShape = RoundedCornerShape(
+                topStart = 28.dp,
+                bottomStart = 28.dp,
+                topEnd = addPaymentInnerCorner,
+                bottomEnd = addPaymentInnerCorner
+            )
+            val rightButtonShape = RoundedCornerShape(
+                topStart = addDueInnerCorner,
+                bottomStart = addDueInnerCorner,
+                topEnd = 28.dp,
+                bottomEnd = 28.dp
+            )
+
+            Button(
+                onClick = onSave,
+                interactionSource = addPaymentInteraction,
+                enabled = !uiState.isSavingPayment && (uiState.paymentInputAmount.toDoubleOrNull() ?: 0.0) > 0,
+                modifier = Modifier.weight(1f).height(56.dp),
+                shape = leftButtonShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                )
+            ) {
+                if (isAddPaymentLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(
+                        text = "Add Payment",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+
+            OutlinedButton(
+                onClick = onAddPreviousDue,
+                interactionSource = addDueInteraction,
+                enabled = !uiState.isSavingPayment && (uiState.paymentInputAmount.toDoubleOrNull() ?: 0.0) > 0,
+                modifier = Modifier.weight(1f).height(56.dp),
+                shape = rightButtonShape
+            ) {
+                if (isAddDueLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Text(
+                        text = "Add Previous Due",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        if (uiState.paymentRecords.isNotEmpty()) {
+            Text(
+                text = "Recent Transactions",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        val recentTransactions = uiState.paymentRecords.take(5)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            recentTransactions.forEachIndexed { index, record ->
+                val isExpanded = expandedRecordId == record.id
+                val toggleExpanded = {
+                    expandedRecordId = if (isExpanded) null else record.id
+                }
+                val transactionCardInteraction = remember { MutableInteractionSource() }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            enabled = !uiState.isSavingPayment,
+                            indication = null,
+                            interactionSource = transactionCardInteraction
+                        ) { toggleExpanded() },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    ),
+                    shape = groupedTransactionCardShape(index = index, lastIndex = recentTransactions.lastIndex),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = record.recordedAt.format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a")),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (record.note.isNotBlank()) {
+                                Text(
+                                    text = record.note,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                            if (record.type != com.prantiux.milktick.data.PaymentRecordType.PAYMENT) {
+                                Text(
+                                    text = record.type.name.lowercase().replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        val amountColor = if (record.amount < 0) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                        val amountText = if (record.amount < 0) "-₹${String.format("%.2f", kotlin.math.abs(record.amount))}" else "₹${String.format("%.2f", record.amount)}"
+
+                        Text(
+                            text = amountText,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = amountColor
+                        )
+
+                        val arrowRotation by animateFloatAsState(
+                            targetValue = if (isExpanded) 180f else 0f,
+                            animationSpec = tween(durationMillis = 220),
+                            label = "transactionArrowRotation"
+                        )
+                        IconButton(
+                            onClick = toggleExpanded,
+                            enabled = !uiState.isSavingPayment,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_fa_chevron_down),
+                                contentDescription = if (isExpanded) "Collapse transaction details" else "Expand transaction details",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .rotate(arrowRotation)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = expandedRecordId == record.id,
+                        enter = expandVertically(animationSpec = tween(240)) + fadeIn(animationSpec = tween(180)),
+                        exit = shrinkVertically(animationSpec = tween(220)) + fadeOut(animationSpec = tween(160))
+                    ) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { onDeleteRecord(record.id) },
+                                enabled = !uiState.isSavingPayment,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text("Delete")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
 
@@ -639,6 +904,8 @@ fun DayCell(
     hasEntry: Boolean,
     hasNoDelivery: Boolean,
     isToday: Boolean,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     // Priority: Entry (green) > No Delivery (red) > Today (blue) > Default (gray)
@@ -655,9 +922,14 @@ fun DayCell(
     }
     
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(40.dp)
-            .clip(CircleShape)
+            .border(
+                width = if (isSelected) 2.dp else 0.dp,
+                color = if (isSelected) MaterialTheme.colorScheme.tertiary else Color.Transparent,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clip(RoundedCornerShape(14.dp))
             .background(backgroundColor)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -671,6 +943,15 @@ fun DayCell(
     }
 }
 
+private fun groupedTransactionCardShape(index: Int, lastIndex: Int): RoundedCornerShape {
+    return when {
+        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
+        index == lastIndex -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        else -> RoundedCornerShape(8.dp)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateDetailDialog(
     date: LocalDate,
@@ -682,59 +963,133 @@ fun DateDetailDialog(
     val hasNoDelivery = uiState.datesWithNoDelivery.contains(date)
     val entryDetails = uiState.entryDetailsMap[date]
     
-    var isEditing by remember { mutableStateOf(false) }
-    var editedQuantity by remember { mutableStateOf(entryDetails?.quantity?.toString() ?: "") }
-    var editedNote by remember { mutableStateOf(entryDetails?.note ?: "") }
-    var didBringMilk by remember { mutableStateOf(hasEntry) }
+    var isEditing by remember(date) { mutableStateOf(false) }
+    var editedQuantity by remember(date) { mutableStateOf(entryDetails?.quantity?.toString() ?: "") }
+    var editedNote by remember(date) { mutableStateOf(entryDetails?.note ?: "") }
+    var didBringMilk by remember(date) { mutableStateOf(hasEntry) }
     var isSaving by remember { mutableStateOf(false) }
+    var showSavedState by remember { mutableStateOf(false) }
+    val sheetDragOffset = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val dismissDragThresholdPx = with(LocalDensity.current) { 120.dp.toPx() }
+    val dismissTravelPx = with(LocalDensity.current) { 220.dp.toPx() }
+
+    LaunchedEffect(date) {
+        isSaving = false
+        showSavedState = false
+        sheetDragOffset.snapTo(0f)
+    }
     
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(24.dp),
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = date.format(java.time.format.DateTimeFormatter.ofPattern("EEEE")),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = date.format(java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                if (!isEditing) {
-                    IconButton(
-                        onClick = { isEditing = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                CircleShape
-                            )
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_fa_pen_to_square),
-                            contentDescription = "Edit",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(0, sheetDragOffset.value.roundToInt()) }
+                .draggable(
+                    orientation = Orientation.Vertical,
+                    state = rememberDraggableState { delta ->
+                        scope.launch {
+                            sheetDragOffset.snapTo((sheetDragOffset.value + delta).coerceAtLeast(0f))
+                        }
+                    },
+                    onDragStopped = { velocity ->
+                        scope.launch {
+                            if (sheetDragOffset.value > dismissDragThresholdPx || velocity > 1200f) {
+                                sheetDragOffset.animateTo(
+                                    targetValue = sheetDragOffset.value + dismissTravelPx,
+                                    animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing)
+                                )
+                                onDismiss()
+                            } else {
+                                sheetDragOffset.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                                )
+                            }
+                        }
                     }
-                }
-            }
-        },
-        text = {
+                )
+                .navigationBarsPadding()
+                .padding(vertical = 0.dp),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
+        ) {
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing))
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (!isEditing) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BottomSheetDefaults.DragHandle()
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = date.format(java.time.format.DateTimeFormatter.ofPattern("EEEE")),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = date.format(java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            if (isEditing) {
+                                isEditing = false
+                                editedQuantity = entryDetails?.quantity?.toString() ?: ""
+                                editedNote = entryDetails?.note ?: ""
+                                didBringMilk = hasEntry
+                                isSaving = false
+                                showSavedState = false
+                            } else {
+                                isEditing = true
+                            }
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        AnimatedContent(
+                            targetState = isEditing,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(180)) togetherWith
+                                    fadeOut(animationSpec = tween(140))
+                            },
+                            label = "dateSheetEditCancelIcon"
+                        ) { editing ->
+                            Icon(
+                                painter = painterResource(
+                                    if (editing) R.drawable.ic_fa_circle_xmark else R.drawable.ic_fa_pen_to_square
+                                ),
+                                contentDescription = if (editing) "Cancel edit" else "Edit",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (!isEditing) {
                     // View mode
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -745,7 +1100,7 @@ fun DateDetailDialog(
                                 else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                             }
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Row(
                             modifier = Modifier
@@ -805,7 +1160,7 @@ fun DateDetailDialog(
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                                 ),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(20.dp)
                             ) {
                                 Text(
                                     text = "${entryDetails.quantity}L",
@@ -833,7 +1188,7 @@ fun DateDetailDialog(
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                     ),
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = RoundedCornerShape(20.dp)
                                 ) {
                                     Text(
                                         text = entryDetails.note,
@@ -849,7 +1204,7 @@ fun DateDetailDialog(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                             ),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(24.dp)
                         ) {
                             Text(
                                 text = "No details available for this date",
@@ -862,10 +1217,10 @@ fun DateDetailDialog(
                             )
                         }
                     }
-                } else {
+                    } else {
                     // Edit mode
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         // Did you bring milk toggle
                         Card(
@@ -873,7 +1228,7 @@ fun DateDetailDialog(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                             ),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(24.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -908,121 +1263,136 @@ fun DateDetailDialog(
                         
                         // Quantity input (only if milk was brought)
                         if (didBringMilk) {
-                            OutlinedTextField(
-                                value = editedQuantity,
-                                onValueChange = { editedQuantity = it },
-                                label = { Text("Quantity (Liters)") },
-                                placeholder = { Text("Enter quantity") },
-                                leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_glass_water),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    focusedLabelColor = MaterialTheme.colorScheme.primary
-                                ),
-                                shape = RoundedCornerShape(16.dp)
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = editedQuantity,
+                                    onValueChange = { editedQuantity = it },
+                                    label = { Text("Quantity (Liters)") },
+                                    placeholder = { Text("Enter quantity") },
+                                    leadingIcon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_fa_glass_water),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+
+                                // Note input
+                                OutlinedTextField(
+                                    value = editedNote,
+                                    onValueChange = { editedNote = it },
+                                    label = { Text("Note (Optional)") },
+                                    placeholder = { Text("Add a note...") },
+                                    leadingIcon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_fa_pen_to_square),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    shape = RoundedCornerShape(20.dp),
+                                    minLines = 1,
+                                    maxLines = 6
+                                )
+                            }
+                        }
+                    }
+                    }
+                }
+
+                if (isEditing) {
+                    val saveInteractionSource = remember { MutableInteractionSource() }
+                    val savePressed by saveInteractionSource.collectIsPressedAsState()
+                    val saveScale by animateFloatAsState(
+                        targetValue = if (savePressed) 0.97f else 1f,
+                        animationSpec = tween(durationMillis = 140, easing = FastOutSlowInEasing),
+                        label = "dateSaveButtonPress"
+                    )
+
+                    Button(
+                        onClick = {
+                            isSaving = true
+                            showSavedState = false
+                            calendarViewModel.updateMilkEntry(
+                                date = date,
+                                quantity = if (didBringMilk) editedQuantity.toFloatOrNull() ?: 0f else 0f,
+                                brought = didBringMilk,
+                                note = if (didBringMilk) editedNote else "",
+                                onComplete = {
+                                    isSaving = false
+                                    showSavedState = true
+                                }
                             )
-                            
-                            // Note input
-                            OutlinedTextField(
-                                value = editedNote,
-                                onValueChange = { editedNote = it },
-                                label = { Text("Note (Optional)") },
-                                placeholder = { Text("Add a note...") },
-                                leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_fa_pen_to_square),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                        },
+                        enabled = !isSaving && (!didBringMilk || (editedQuantity.toFloatOrNull() ?: 0f) > 0),
+                        interactionSource = saveInteractionSource,
+                        modifier = Modifier
+                            .fillMaxWidth(0.72f)
+                            .height(56.dp)
+                            .align(Alignment.CenterHorizontally)
+                            .graphicsLayer {
+                                scaleX = saveScale
+                                scaleY = saveScale
+                            },
+                        shape = RoundedCornerShape(28.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (showSavedState) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                        )
+                    ) {
+                        AnimatedContent(
+                            targetState = when {
+                                isSaving -> "saving"
+                                showSavedState -> "saved"
+                                else -> "save"
+                            },
+                            transitionSpec = {
+                                slideInVertically(
+                                    animationSpec = tween(220),
+                                    initialOffsetY = { fullHeight -> -fullHeight / 2 }
+                                ) + fadeIn(animationSpec = tween(220)) togetherWith
+                                    slideOutVertically(
+                                        animationSpec = tween(220),
+                                        targetOffsetY = { fullHeight -> fullHeight / 2 }
+                                    ) + fadeOut(animationSpec = tween(220))
+                            },
+                            label = "dateSaveButtonContent"
+                        ) { state ->
+                            Text(
+                                text = when (state) {
+                                    "saving" -> "Saving..."
+                                    "saved" -> "Saved!"
+                                    else -> "Save"
                                 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 100.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    focusedLabelColor = MaterialTheme.colorScheme.primary
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                minLines = 3,
-                                maxLines = 5
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
                 }
             }
-        },
-        confirmButton = {
-            if (isEditing) {
-                Button(
-                    onClick = {
-                        isSaving = true
-                        calendarViewModel.updateMilkEntry(
-                            date = date,
-                            quantity = if (didBringMilk) editedQuantity.toFloatOrNull() ?: 0f else 0f,
-                            brought = didBringMilk,
-                            note = if (didBringMilk) editedNote else "",
-                            onComplete = {
-                                isSaving = false
-                                isEditing = false
-                            }
-                        )
-                    },
-                    enabled = !isSaving && (!didBringMilk || (editedQuantity.toFloatOrNull() ?: 0f) > 0),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_fa_circle_check),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save", fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            } else {
-                TextButton(
-                    onClick = onDismiss,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Close", fontWeight = FontWeight.SemiBold)
-                }
-            }
-        },
-        dismissButton = if (isEditing) {
-            {
-                TextButton(
-                    onClick = { 
-                        isEditing = false
-                        editedQuantity = entryDetails?.quantity?.toString() ?: ""
-                        editedNote = entryDetails?.note ?: ""
-                        didBringMilk = hasEntry
-                    },
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Cancel", fontWeight = FontWeight.SemiBold)
-                }
-            }
-        } else null
-    )
+        }
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExportDialog(
     yearMonth: YearMonth,
@@ -1033,25 +1403,28 @@ fun ExportDialog(
 ) {
     val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
     val fileName = "${monthName}_${yearMonth.year}.csv"
-    
-    // Calculate estimated file size
     val entryCount = uiState.entryDetailsMap.size
-    val estimatedSize = ((entryCount * 100) + 500) / 1024.0 // Rough estimate in KB
-    val fileSizeText = if (estimatedSize < 1) {
-        "${(estimatedSize * 1024).toInt()} bytes"
-    } else {
-        String.format("%.1f KB", estimatedSize)
-    }
-    
+    val estimatedSize = ((entryCount * 100) + 500) / 1024.0
+    val fileSizeText = if (estimatedSize < 1) "${(estimatedSize * 1024).toInt()} bytes" else String.format("%.1f KB", estimatedSize)
     val documentsPath = "${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).absolutePath}/MilkTick"
-    
+
     var isExporting by remember { mutableStateOf(false) }
-    
-    AlertDialog(
+    var exportCompleted by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    ModalBottomSheet(
         onDismissRequest = { if (!isExporting) onDismiss() },
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(24.dp),
-        title = {
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1068,121 +1441,80 @@ fun ExportDialog(
                     fontWeight = FontWeight.Bold
                 )
             }
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "Export data for $monthName $yearMonth",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                HorizontalDivider()
-                
-                // File details
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // File name
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = "File Name:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = fileName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.End
-                        )
-                    }
-                    
-                    // File size
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Estimated Size:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = fileSizeText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    // File location
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Save Location:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = "$documentsPath/$fileName",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-                }
-                
-                // Info card
-                Card(
+
+            Text(
+                text = "Export data for $monthName $yearMonth",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Text("File Name:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = fileName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.End
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Estimated Size:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(fileSizeText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Save Location:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_fa_circle_info),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(20.dp)
-                        )
                         Text(
-                            text = "The file will be exported as CSV format with all delivery records and payment information.",
+                            text = "$documentsPath/$fileName",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(12.dp)
                         )
                     }
                 }
             }
-        },
-        confirmButton = {
-            var exportCompleted by remember { mutableStateOf(false) }
-            val scope = rememberCoroutineScope()
-            
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_fa_circle_info),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "The file will be exported as CSV format with all delivery records and payment information.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
             Button(
                 onClick = {
                     if (exportCompleted) {
@@ -1192,12 +1524,12 @@ fun ExportDialog(
                         val message = exportMonthData(
                             yearMonth = yearMonth,
                             entryDetailsMap = uiState.entryDetailsMap,
-                            isPaid = uiState.isPaid,
-                            paymentNote = uiState.paymentNote
+                            amountPaid = uiState.amountPaid,
+                            outstandingAmount = uiState.outstandingAmount,
+                            latestPaymentNote = uiState.paymentRecords.firstOrNull { it.note.isNotBlank() }?.note ?: ""
                         )
                         isExporting = false
                         exportCompleted = true
-                        // Auto-dismiss after showing success for 1.5 seconds
                         scope.launch {
                             kotlinx.coroutines.delay(1500)
                             onExportComplete(message)
@@ -1208,17 +1540,13 @@ fun ExportDialog(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (exportCompleted) 
-                        MaterialTheme.colorScheme.tertiary 
-                    else 
-                        MaterialTheme.colorScheme.primary
+                    containerColor = if (exportCompleted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
                 )
             ) {
                 androidx.compose.animation.AnimatedContent(
                     targetState = if (isExporting) "exporting" else if (exportCompleted) "completed" else "ready",
                     transitionSpec = {
-                        fadeIn(animationSpec = tween(300)) togetherWith
-                                fadeOut(animationSpec = tween(300))
+                        fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
                     },
                     label = "export_animation"
                 ) { state ->
@@ -1260,66 +1588,79 @@ fun ExportDialog(
                     }
                 }
             }
-        },
-        dismissButton = null
-    )
+
+            if (!isExporting && !exportCompleted) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Cancel", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
 }
 
 // Export month data to CSV
 fun exportMonthData(
     yearMonth: YearMonth,
     entryDetailsMap: Map<LocalDate, EntryDetail>,
-    isPaid: Boolean,
-    paymentNote: String
+    amountPaid: Double,
+    outstandingAmount: Double,
+    latestPaymentNote: String
 ): String {
     return try {
         // Create MilkTick directory in Documents folder
         val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
         val milkTickDir = File(documentsDir, "MilkTick")
         if (!milkTickDir.exists()) {
-            }
-
-            // Create CSV file with month name
-            val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-            val fileName = "${monthName}_${yearMonth.year}.csv"
-            val csvFile = File(milkTickDir, fileName)
-
-            FileWriter(csvFile).use { writer ->
-                // Write CSV header
-                writer.append("Date,Quantity (L),Note,Status\n")
-
-                // Write data for each day in the month
-                val daysInMonth = yearMonth.lengthOfMonth()
-                for (day in 1..daysInMonth) {
-                    val date = yearMonth.atDay(day)
-                    val entryDetail = entryDetailsMap[date]
-
-                    // Use text format to prevent #### in Excel
-                    val dateStr = date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                    val quantity = entryDetail?.quantity?.toString() ?: "0"
-                    val note = entryDetail?.note?.replace(",", ";")?.replace("\n", " ") ?: ""
-                    val status = if (entryDetail != null) "Delivered" else "Not Delivered"
-
-                    // Wrap date in quotes to force text format in Excel
-                    writer.append("\"$dateStr\",$quantity,\"$note\",$status\n")
-                }
-
-                // Add payment information at the end
-                writer.append("\n")
-                writer.append("Payment Status,${if (isPaid) "Paid" else "Unpaid"},,\n")
-                if (paymentNote.isNotEmpty()) {
-                    writer.append("Payment Note,\"${paymentNote.replace(",", ";").replace("\n", " ") }\",,\n")
-                }
-            }
-
-            "Exported successfully to: ${csvFile.absolutePath}"
-        } catch (e: Exception) {
-            "Export failed: ${e.message}"
+            milkTickDir.mkdirs()
         }
-    }
 
-    @Composable
-    fun UpdateMonthlyRateDialog(
+        // Create CSV file with month name
+        val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        val fileName = "${monthName}_${yearMonth.year}.csv"
+        val csvFile = File(milkTickDir, fileName)
+
+        FileWriter(csvFile).use { writer ->
+            // Write CSV header
+            writer.append("Date,Quantity (L),Note,Status\n")
+
+            // Write data for each day in the month
+            val daysInMonth = yearMonth.lengthOfMonth()
+            for (day in 1..daysInMonth) {
+                val date = yearMonth.atDay(day)
+                val entryDetail = entryDetailsMap[date]
+
+                // Use text format to prevent #### in Excel
+                val dateStr = date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                val quantity = entryDetail?.quantity?.toString() ?: "0"
+                val note = entryDetail?.note?.replace(",", ";")?.replace("\n", " ") ?: ""
+                val status = if (entryDetail != null) "Delivered" else "Not Delivered"
+
+                // Wrap date in quotes to force text format in Excel
+                writer.append("\"$dateStr\",$quantity,\"$note\",$status\n")
+            }
+
+            // Add payment information at the end
+            writer.append("\n")
+            writer.append("Total Paid,${String.format("%.2f", amountPaid)},,\n")
+            writer.append("Outstanding,${String.format("%.2f", outstandingAmount)},,\n")
+            if (latestPaymentNote.isNotEmpty()) {
+                writer.append("Latest Payment Note,\"${latestPaymentNote.replace(",", ";").replace("\n", " ")}\",,\n")
+            }
+        }
+
+        "Exported successfully to: ${csvFile.absolutePath}"
+    } catch (e: Exception) {
+        "Export failed: ${e.message}"
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UpdateMonthlyRateDialog(
         yearMonth: YearMonth,
         userId: String,
         currentRate: Float,
@@ -1341,9 +1682,19 @@ fun exportMonthData(
 
         val monthName = yearMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
 
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { if (!isSaving) onDismiss() },
-            title = {
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
                 Column {
                     Text(
                         "Update Monthly Rate",
@@ -1356,8 +1707,7 @@ fun exportMonthData(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            },
-            text = {
+
                 Column(
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
@@ -1443,8 +1793,7 @@ fun exportMonthData(
                         )
                     }
                 }
-            },
-            confirmButton = {
+
                 Button(
                     onClick = {
                         val rate = rateText.toFloatOrNull()
@@ -1495,7 +1844,16 @@ fun exportMonthData(
                         modifier = Modifier.padding(vertical = 4.dp)
                     )
                 }
-            },
-            dismissButton = null
-        )
+
+                if (!isSaving) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Cancel", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
     }
