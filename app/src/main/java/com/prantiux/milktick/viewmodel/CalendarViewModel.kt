@@ -3,7 +3,7 @@ package com.prantiux.milktick.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MilkEntry
-import com.prantiux.milktick.data.MonthlyPayment
+import com.prantiux.milktick.data.PaymentRecord
 import com.prantiux.milktick.data.local.SyncState
 import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -20,6 +21,11 @@ data class EntryDetail(
     val quantity: Float,
     val note: String?
 )
+
+enum class PaymentAction {
+    ADD_PAYMENT,
+    ADD_PREVIOUS_DUE
+}
 
 data class CalendarUiState(
     val isLoading: Boolean = false,
@@ -29,9 +35,18 @@ data class CalendarUiState(
     val totalDays: Int = 0,
     val totalLiters: Double = 0.0,
     val totalCost: Double = 0.0,
-    val isPaid: Boolean = false,
-    val paymentNote: String = "",
-    val isEditingPayment: Boolean = false,
+    val monthDueAmount: Double = 0.0,
+    val monthClearedFromLater: Double = 0.0,
+    val amountPaid: Double = 0.0,
+    val carryDueAmount: Double = 0.0,
+    val outstandingAmount: Double = 0.0,
+    val advanceCredit: Double = 0.0,
+    val dueClearedIn: YearMonth? = null,
+    val paymentRecords: List<PaymentRecord> = emptyList(),
+    val paymentInputAmount: String = "",
+    val paymentInputNote: String = "",
+    val isSavingPayment: Boolean = false,
+    val activePaymentAction: PaymentAction? = null,
     val defaultQuantity: Float = 0f,
     val monthSyncState: SyncState = SyncState.SYNCED,
     val loadedYearMonth: YearMonth? = null,
@@ -41,6 +56,14 @@ data class CalendarUiState(
 class CalendarViewModel(
     private val repository: MainRepository = AppGraph.mainRepository
 ) : ViewModel() {
+
+    private data class MonthBucket(
+        val yearMonth: YearMonth,
+        var due: Double,
+        var paid: Double = 0.0,
+        var paidFromLater: Double = 0.0,
+        var clearedIn: YearMonth? = null
+    )
     
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
@@ -50,9 +73,9 @@ class CalendarViewModel(
     private var monthDataObserverJob: Job? = null
     private var monthSyncObserverJob: Job? = null
     
-    fun loadMonthData(userId: String, yearMonth: YearMonth) {
+    fun loadMonthData(userId: String, yearMonth: YearMonth, forceReload: Boolean = false) {
         val isSameRequest = currentUserId == userId && currentYearMonth == yearMonth
-        if (isSameRequest && monthDataObserverJob?.isActive == true) {
+        if (!forceReload && isSameRequest && monthDataObserverJob?.isActive == true) {
             return
         }
 
@@ -87,8 +110,58 @@ class CalendarViewModel(
                 val defaultQuantity = rate?.defaultQuantity ?: 0f
                 val totalCost = totalQuantity * ratePerLiter
                 
-                // Load payment status
-                val payment = repository.getMonthlyPayment(userId, yearMonth)
+                val paymentRecords = repository.getPaymentRecordsForMonth(userId, yearMonth)
+                val allRecords = repository.getAllPaymentRecordsForUser(userId)
+                val entryMonths = repository.getAllEntryYearMonths(userId)
+
+                val monthSet = (entryMonths + allRecords.map { it.appliedYearMonth } + listOf(yearMonth)).toSortedSet()
+                val buckets = monthSet.associateWith { month ->
+                    MonthBucket(
+                        yearMonth = month,
+                        due = repository.getMonthlyCharge(userId, month)
+                    )
+                }.toMutableMap()
+
+                // Negative adjustments increase due of the applied month.
+                allRecords.filter { it.amount < 0 }.forEach { record ->
+                    val bucket = buckets[record.appliedYearMonth] ?: return@forEach
+                    bucket.due += kotlin.math.abs(record.amount)
+                }
+
+                // Positive payments clear oldest month dues first (FIFO).
+                allRecords.filter { it.amount > 0 }.forEach { record ->
+                    var remaining = record.amount
+                    for (month in monthSet) {
+                        if (remaining <= 0.0) break
+                        val bucket = buckets[month] ?: continue
+                        val monthRemaining = (bucket.due - bucket.paid).coerceAtLeast(0.0)
+                        if (monthRemaining <= 0.0) continue
+
+                        val applied = minOf(remaining, monthRemaining)
+                        bucket.paid += applied
+                        if (record.appliedYearMonth > month) {
+                            bucket.paidFromLater += applied
+                        }
+                        remaining -= applied
+
+                        if ((bucket.due - bucket.paid) <= 0.0001 && bucket.clearedIn == null) {
+                            bucket.clearedIn = record.appliedYearMonth
+                        }
+                    }
+                }
+
+                val target = buckets[yearMonth] ?: MonthBucket(yearMonth = yearMonth, due = totalCost)
+                // "Settled" should reflect transactions recorded in this month,
+                // independent of FIFO due allocation across historical buckets.
+                val monthPaid = paymentRecords.filter { it.amount > 0.0 }.sumOf { it.amount }
+                val monthOutstanding = (target.due - target.paid).coerceAtLeast(0.0)
+
+                val totalCostUntilMonth = repository.getTotalCostUntil(userId, yearMonth)
+                val totalPaymentsUntilMonth = repository.getTotalPaymentsUntil(userId, yearMonth)
+                val carryDueAmount = (totalCostUntilMonth - totalPaymentsUntilMonth).coerceAtLeast(0.0)
+
+                val totalPaidAllMonths = buckets.values.sumOf { it.paid }
+                val globalCredit = (allRecords.filter { it.amount > 0 }.sumOf { it.amount } - totalPaidAllMonths).coerceAtLeast(0.0)
                 
                 _uiState.value = CalendarUiState(
                     isLoading = false,
@@ -99,9 +172,14 @@ class CalendarViewModel(
                     totalLiters = totalQuantity,
                     defaultQuantity = defaultQuantity,
                     totalCost = totalCost,
-                    isPaid = payment?.isPaid ?: false,
-                    paymentNote = payment?.paymentNote ?: "",
-                    isEditingPayment = false,
+                    monthDueAmount = target.due,
+                    monthClearedFromLater = target.paidFromLater,
+                    amountPaid = monthPaid,
+                    carryDueAmount = carryDueAmount,
+                    outstandingAmount = monthOutstanding,
+                    advanceCredit = globalCredit,
+                    dueClearedIn = target.clearedIn,
+                    paymentRecords = paymentRecords,
                     monthSyncState = _uiState.value.monthSyncState,
                     loadedYearMonth = yearMonth
                 )
@@ -127,47 +205,95 @@ class CalendarViewModel(
         }
     }
     
-    fun updatePaymentStatus(isPaid: Boolean) {
-        viewModelScope.launch {
-            val yearMonth = currentYearMonth ?: return@launch
-            _uiState.value = _uiState.value.copy(isPaid = isPaid)
-            
-            val payment = MonthlyPayment(
-                yearMonth = yearMonth,
-                userId = currentUserId,
-                isPaid = isPaid,
-                paymentNote = _uiState.value.paymentNote,
-                paidDate = if (isPaid) System.currentTimeMillis() else null
-            )
-            _uiState.value = _uiState.value.copy(monthSyncState = SyncState.PENDING_UPDATE)
-            repository.saveMonthlyPayment(payment)
-        }
+    fun updatePaymentInput(amount: String) {
+        _uiState.value = _uiState.value.copy(paymentInputAmount = amount)
     }
-    
+
     fun updatePaymentNote(note: String) {
-        _uiState.value = _uiState.value.copy(paymentNote = note)
+        _uiState.value = _uiState.value.copy(paymentInputNote = note)
     }
-    
-    fun savePaymentNote() {
+
+    fun savePaymentRecord(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val yearMonth = currentYearMonth ?: return@launch
-            val payment = MonthlyPayment(
-                yearMonth = yearMonth,
-                userId = currentUserId,
-                isPaid = _uiState.value.isPaid,
-                paymentNote = _uiState.value.paymentNote,
-                paidDate = if (_uiState.value.isPaid) System.currentTimeMillis() else null
+            val amount = _uiState.value.paymentInputAmount.toDoubleOrNull() ?: 0.0
+            if (amount <= 0.0) {
+                onComplete()
+                return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(
+                isSavingPayment = true,
+                activePaymentAction = PaymentAction.ADD_PAYMENT,
+                monthSyncState = SyncState.PENDING_UPDATE
             )
-            _uiState.value = _uiState.value.copy(monthSyncState = SyncState.PENDING_UPDATE)
-            repository.saveMonthlyPayment(payment)
-            _uiState.value = _uiState.value.copy(isEditingPayment = false)
+            delay(1200)
+            repository.addPaymentRecord(
+                userId = currentUserId,
+                yearMonth = yearMonth,
+                amount = amount,
+                note = _uiState.value.paymentInputNote
+            )
+
+            loadMonthData(currentUserId, yearMonth, forceReload = true)
+            _uiState.value = _uiState.value.copy(
+                isSavingPayment = false,
+                activePaymentAction = null,
+                paymentInputAmount = "",
+                paymentInputNote = ""
+            )
+            onComplete()
         }
     }
-    
-    fun toggleEditMode() {
-        _uiState.value = _uiState.value.copy(isEditingPayment = !_uiState.value.isEditingPayment)
+
+    fun savePreviousDueAdjustment(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            val yearMonth = currentYearMonth ?: return@launch
+            val amount = _uiState.value.paymentInputAmount.toDoubleOrNull() ?: 0.0
+            if (amount <= 0.0) {
+                onComplete()
+                return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(
+                isSavingPayment = true,
+                activePaymentAction = PaymentAction.ADD_PREVIOUS_DUE,
+                monthSyncState = SyncState.PENDING_UPDATE
+            )
+            delay(1200)
+            repository.addPreviousDueAdjustment(
+                userId = currentUserId,
+                yearMonth = yearMonth,
+                amount = amount,
+                note = _uiState.value.paymentInputNote
+            )
+
+            loadMonthData(currentUserId, yearMonth, forceReload = true)
+            _uiState.value = _uiState.value.copy(
+                isSavingPayment = false,
+                activePaymentAction = null,
+                paymentInputAmount = "",
+                paymentInputNote = ""
+            )
+            onComplete()
+        }
     }
-    
+
+    fun deletePaymentRecord(recordId: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            val yearMonth = currentYearMonth ?: return@launch
+            _uiState.value = _uiState.value.copy(
+                isSavingPayment = true,
+                activePaymentAction = null,
+                monthSyncState = SyncState.PENDING_UPDATE
+            )
+            repository.deletePaymentRecord(recordId)
+            loadMonthData(currentUserId, yearMonth, forceReload = true)
+            _uiState.value = _uiState.value.copy(isSavingPayment = false, activePaymentAction = null)
+            onComplete()
+        }
+    }
+
     fun updateMilkEntry(
         date: LocalDate,
         quantity: Float,
@@ -186,6 +312,9 @@ class CalendarViewModel(
                 )
                 _uiState.value = _uiState.value.copy(monthSyncState = SyncState.PENDING_UPDATE)
                 repository.saveMilkEntry(entry)
+
+                // Force refresh derived totals immediately for edited historical dates.
+                loadMonthData(currentUserId, YearMonth.from(date))
 
                 onComplete()
             } catch (e: Exception) {
