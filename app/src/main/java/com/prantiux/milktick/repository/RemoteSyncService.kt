@@ -2,9 +2,12 @@ package com.prantiux.milktick.repository
 
 import android.util.Log
 import com.prantiux.milktick.data.MilkEntry
-import com.prantiux.milktick.data.MonthlyPayment
 import com.prantiux.milktick.data.MonthlyRate
+import com.prantiux.milktick.data.PaymentRecord
+import com.prantiux.milktick.data.PaymentRecordType
 import com.prantiux.milktick.data.local.SyncState
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.YearMonth
 
 class RemoteSyncService(
@@ -21,7 +24,11 @@ class RemoteSyncService(
             localRepository.markRateFailed(entity.userId, entity.yearMonth)
         }
         localRepository.getPendingPaymentEntities().forEach { entity ->
-            localRepository.markPaymentFailed(entity.userId, entity.yearMonth)
+            if (entity.syncState == SyncState.PENDING_DELETE) {
+                localRepository.markPaymentPendingDelete(entity.id)
+            } else {
+                localRepository.markPaymentFailed(entity.id)
+            }
         }
     }
 
@@ -82,22 +89,39 @@ class RemoteSyncService(
     suspend fun pushPendingPayments() {
         localRepository.getPendingPaymentEntities().forEach { entity ->
             try {
-                val payment = MonthlyPayment(
-                    yearMonth = YearMonth.parse(entity.yearMonth),
+                if (entity.syncState == SyncState.PENDING_DELETE) {
+                    val result = firestoreRepository.deletePaymentRecord(entity.userId, entity.id)
+                    if (result.isSuccess) {
+                        localRepository.hardDeletePaymentRecord(entity.id)
+                    } else {
+                        // Keep delete intent so next sync retries the same operation.
+                        localRepository.markPaymentPendingDelete(entity.id)
+                    }
+                    return@forEach
+                }
+
+                val payment = PaymentRecord(
+                    id = entity.id,
                     userId = entity.userId,
-                    isPaid = entity.isPaid,
-                    paymentNote = entity.paymentNote,
-                    paidDate = entity.paidDate
+                    amount = entity.amount,
+                    note = entity.note,
+                    recordedAt = LocalDateTime.ofEpochSecond(entity.recordedAt / 1000, 0, ZoneOffset.UTC),
+                    appliedYearMonth = YearMonth.parse(entity.appliedYearMonth),
+                    type = PaymentRecordType.valueOf(entity.type)
                 )
-                val result = firestoreRepository.saveMonthlyPayment(payment)
+                val result = firestoreRepository.savePaymentRecord(payment)
                 if (result.isSuccess) {
-                    localRepository.markPaymentSynced(entity.userId, entity.yearMonth)
+                    localRepository.markPaymentSynced(entity.id)
                 } else {
-                    localRepository.markPaymentFailed(entity.userId, entity.yearMonth)
+                    localRepository.markPaymentFailed(entity.id)
                 }
             } catch (e: Exception) {
-                localRepository.markPaymentFailed(entity.userId, entity.yearMonth)
-                Log.e(tag, "pushPendingPayments failed for ${entity.userId}/${entity.yearMonth}", e)
+                if (entity.syncState == SyncState.PENDING_DELETE) {
+                    localRepository.markPaymentPendingDelete(entity.id)
+                } else {
+                    localRepository.markPaymentFailed(entity.id)
+                }
+                Log.e(tag, "pushPendingPayments failed for ${entity.userId}/${entity.id}", e)
             }
         }
     }
@@ -125,18 +149,44 @@ class RemoteSyncService(
             if (rate != null) {
                 localRepository.saveMonthlyRate(rate, SyncState.SYNCED)
             }
-            val payment = firestoreRepository.getMonthlyPayment(userId, month)
-            if (payment != null) {
-                localRepository.saveMonthlyPayment(payment, SyncState.SYNCED)
-            }
         }
+        reconcilePaymentRecords(userId)
+        
         localRepository.updateLastSync("rates:$userId", if (lastSyncedAt > 0) System.currentTimeMillis() else System.currentTimeMillis())
     }
 
     suspend fun pullAllRates(userId: String) {
         firestoreRepository.getAllMonthlyRatesSync(userId).forEach { localRepository.saveMonthlyRate(it, SyncState.SYNCED) }
-        firestoreRepository.getAllMonthlyPaymentsSync(userId).forEach { localRepository.saveMonthlyPayment(it, SyncState.SYNCED) }
+        reconcilePaymentRecords(userId)
+
         localRepository.updateLastSync("rates:$userId", System.currentTimeMillis())
+    }
+
+    private suspend fun reconcilePaymentRecords(userId: String) {
+        try {
+            val remotePayments = firestoreRepository.getAllPaymentRecordsSync(userId)
+            val localPaymentEntities = localRepository.getAllPaymentRecordEntitiesForUser(userId)
+
+            val localPendingDeleteIds = localPaymentEntities
+                .filter { it.syncState == SyncState.PENDING_DELETE }
+                .map { it.id }
+                .toSet()
+
+            remotePayments
+                .filter { it.id !in localPendingDeleteIds }
+                .forEach { localRepository.savePaymentRecord(it, SyncState.SYNCED) }
+
+            val remoteIds = remotePayments.map { it.id }.toSet()
+            localPaymentEntities.forEach { localRecord ->
+                if (localRecord.syncState != SyncState.SYNCED) return@forEach
+                if (localRecord.id !in remoteIds) {
+                    Log.d(tag, "Deleting orphaned local payment record: ${localRecord.id}")
+                    localRepository.hardDeletePaymentRecord(localRecord.id)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Payment reconciliation failed for user $userId", e)
+        }
     }
 
     suspend fun pullAllUserData(userId: String) {
