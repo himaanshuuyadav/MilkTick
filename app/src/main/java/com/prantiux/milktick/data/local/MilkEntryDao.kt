@@ -23,6 +23,9 @@ interface MilkEntryDao {
     @Query("SELECT DISTINCT CAST(SUBSTR(date, 1, 4) AS INTEGER) FROM milk_entries WHERE userId = :userId AND isDeleted = 0 ORDER BY date DESC")
     suspend fun getAvailableYears(userId: String): List<Int>
 
+    @Query("SELECT DISTINCT yearMonth FROM milk_entries WHERE userId = :userId AND isDeleted = 0 ORDER BY yearMonth ASC")
+    suspend fun getAllYearMonths(userId: String): List<String>
+
     @Query("SELECT COUNT(*) FROM milk_entries WHERE userId = :userId")
     suspend fun getEntryCount(userId: String): Int
 
@@ -56,6 +59,25 @@ interface MilkEntryDao {
         """
     )
     fun getMonthlyTotalQuantity(userId: String, yearMonth: String): Flow<Float?>
+
+    @Query(
+        """
+        SELECT DISTINCT yearMonth
+        FROM milk_entries
+        WHERE userId = :userId AND yearMonth <= :endYearMonth AND isDeleted = 0
+        ORDER BY yearMonth ASC
+        """
+    )
+    suspend fun getYearMonthsUpTo(userId: String, endYearMonth: String): List<String>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(quantity), 0)
+        FROM milk_entries
+        WHERE userId = :userId AND yearMonth = :yearMonth AND brought = 1 AND isDeleted = 0
+        """
+    )
+    suspend fun getMonthlyDeliveredQuantitySync(userId: String, yearMonth: String): Float
 
     @Query(
         """
