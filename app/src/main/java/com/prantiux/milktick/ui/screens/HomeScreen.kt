@@ -429,7 +429,8 @@ fun HomeScreen(
             HomeAnimatedHeader(
                 syncState = uiState.syncState,
                 listState = listState,
-                onMonthlyRateClick = { showRateSheet = true }
+                onMonthlyRateClick = { showRateSheet = true },
+                onSyncClick = { homeViewModel.retrySync() }
             )
 
             if (showRateSheet) {
@@ -456,7 +457,8 @@ fun HomeScreen(
 private fun HomeAnimatedHeader(
     syncState: SyncState,
     listState: androidx.compose.foundation.lazy.LazyListState,
-    onMonthlyRateClick: () -> Unit
+    onMonthlyRateClick: () -> Unit,
+    onSyncClick: () -> Unit
 ) {
     val isScrolled = listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -547,6 +549,7 @@ private fun HomeAnimatedHeader(
                             modifier = Modifier
                                 .size(16.dp)
                                 .rotate(if (isSyncing) syncRotation else 0f)
+                                .clickable { onSyncClick() }
                         )
                     }
 
