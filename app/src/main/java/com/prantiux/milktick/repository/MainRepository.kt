@@ -4,12 +4,16 @@ import android.content.Context
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyPayment
 import com.prantiux.milktick.data.MonthlyRate
+import com.prantiux.milktick.data.PaymentRecord
+import com.prantiux.milktick.data.PaymentRecordType
 import com.prantiux.milktick.data.local.SyncState
 import com.prantiux.milktick.sync.SyncWorkScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
+import java.util.UUID
 
 class MainRepository(
     private val context: Context,
@@ -87,16 +91,104 @@ class MainRepository(
     }
 
     suspend fun saveMonthlyPayment(payment: MonthlyPayment): Result<Unit> {
-        val existing = localRepository.getMonthlyPayment(payment.userId, payment.yearMonth)
-        val pendingState = if (existing == null) SyncState.PENDING_CREATE else SyncState.PENDING_UPDATE
-        localRepository.saveMonthlyPayment(payment, pendingState)
-        triggerSync()
+        val monthlyRate = localRepository.getMonthlyRate(payment.userId, payment.yearMonth)
+        val monthEntries = localRepository.getEntriesForMonthSync(payment.userId, payment.yearMonth)
+        val totalCost = monthEntries.filter { it.brought }.sumOf { it.quantity.toDouble() } * (monthlyRate?.ratePerLiter ?: 0f)
+        val paidSoFar = localRepository.getPaymentRecordsForMonth(payment.userId, payment.yearMonth).sumOf { it.amount }
+
+        val delta = if (payment.isPaid) totalCost - paidSoFar else 0.0
+        if (delta > 0.0) {
+            val record = PaymentRecord(
+                id = UUID.randomUUID().toString(),
+                userId = payment.userId,
+                amount = delta,
+                note = payment.paymentNote.ifBlank { "Marked as paid for ${payment.yearMonth}" },
+                recordedAt = LocalDateTime.now(),
+                appliedYearMonth = payment.yearMonth,
+                type = PaymentRecordType.PAYMENT
+            )
+            localRepository.savePaymentRecord(record, SyncState.PENDING_CREATE)
+            triggerSync()
+        }
         return Result.success(Unit)
     }
 
     suspend fun getMonthlyPayment(userId: String, yearMonth: YearMonth): MonthlyPayment? {
-        return localRepository.getMonthlyPayment(userId, yearMonth)
-            ?: MonthlyPayment(yearMonth = yearMonth, userId = userId, isPaid = false, paymentNote = "")
+        val monthlyRate = localRepository.getMonthlyRate(userId, yearMonth)
+        val monthEntries = localRepository.getEntriesForMonthSync(userId, yearMonth)
+        val totalCost = monthEntries.filter { it.brought }.sumOf { it.quantity.toDouble() } * (monthlyRate?.ratePerLiter ?: 0f)
+        val records = localRepository.getPaymentRecordsForMonth(userId, yearMonth)
+        val paidTotal = records.sumOf { it.amount }
+        val latestNote = records.firstOrNull { it.note.isNotBlank() }?.note ?: ""
+
+        return MonthlyPayment(
+            yearMonth = yearMonth,
+            userId = userId,
+            isPaid = paidTotal >= totalCost && totalCost > 0.0,
+            paymentNote = latestNote,
+            paidDate = records.maxOfOrNull { it.recordedAt.atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli() }
+        )
+    }
+
+    suspend fun addPaymentRecord(userId: String, yearMonth: YearMonth, amount: Double, note: String): Result<Unit> {
+        val record = PaymentRecord(
+            id = UUID.randomUUID().toString(),
+            userId = userId,
+            amount = amount,
+            note = note,
+            recordedAt = LocalDateTime.now(),
+            appliedYearMonth = yearMonth,
+            type = PaymentRecordType.PAYMENT
+        )
+        localRepository.savePaymentRecord(record, SyncState.PENDING_CREATE)
+        triggerSync()
+        return Result.success(Unit)
+    }
+
+    suspend fun addPreviousDueAdjustment(userId: String, yearMonth: YearMonth, amount: Double, note: String): Result<Unit> {
+        val record = PaymentRecord(
+            id = UUID.randomUUID().toString(),
+            userId = userId,
+            // Negative value increases payable in running balance calculation.
+            amount = -kotlin.math.abs(amount),
+            note = note.ifBlank { "Previous due adjustment" },
+            recordedAt = LocalDateTime.now(),
+            appliedYearMonth = yearMonth,
+            type = PaymentRecordType.ADJUSTMENT
+        )
+        localRepository.savePaymentRecord(record, SyncState.PENDING_CREATE)
+        triggerSync()
+        return Result.success(Unit)
+    }
+
+    suspend fun deletePaymentRecord(recordId: String): Result<Unit> {
+        localRepository.deletePaymentRecord(recordId)
+        triggerSync()
+        return Result.success(Unit)
+    }
+
+    suspend fun getPaymentRecordsForMonth(userId: String, yearMonth: YearMonth): List<PaymentRecord> {
+        return localRepository.getPaymentRecordsForMonth(userId, yearMonth)
+    }
+
+    suspend fun getTotalPaymentsUntil(userId: String, yearMonth: YearMonth): Double {
+        return localRepository.getTotalPaymentsUntil(userId, yearMonth)
+    }
+
+    suspend fun getTotalCostUntil(userId: String, yearMonth: YearMonth): Double {
+        return localRepository.getTotalCostUntil(userId, yearMonth)
+    }
+
+    suspend fun getAllEntryYearMonths(userId: String): List<YearMonth> {
+        return localRepository.getAllEntryYearMonths(userId)
+    }
+
+    suspend fun getMonthlyCharge(userId: String, yearMonth: YearMonth): Double {
+        return localRepository.getMonthlyCharge(userId, yearMonth)
+    }
+
+    suspend fun getAllPaymentRecordsForUser(userId: String): List<PaymentRecord> {
+        return localRepository.getAllPaymentRecordsForUser(userId)
     }
 
     suspend fun saveNotificationSettings(userId: String, type: String, hour: Int, minute: Int): Result<Unit> {
