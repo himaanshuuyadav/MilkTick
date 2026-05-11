@@ -27,9 +27,6 @@ fun NavGraph(
         composable(Screen.Records.route) {
             RecordsScreen(navController = navController)
         }
-        composable(Screen.Summary.route) {
-            SummaryScreen(navController = navController)
-        }
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController)
         }
@@ -54,12 +51,21 @@ fun NavGraph(
         composable(Screen.Analytics.route) {
             AnalyticsScreen(navController = navController)
         }
-        composable(route = Screen.Calendar.route, arguments = listOf(navArgument("month") { type = NavType.IntType }, navArgument("year") { type = NavType.IntType })) { backStackEntry ->
+        composable(
+            route = Screen.Calendar.route,
+            arguments = listOf(
+                navArgument("month") { type = NavType.IntType },
+                navArgument("year") { type = NavType.IntType },
+                navArgument("day") { type = NavType.IntType; defaultValue = -1 }
+            )
+        ) { backStackEntry ->
             val month = backStackEntry.arguments?.getInt("month") ?: 0
             val year = backStackEntry.arguments?.getInt("year") ?: 0
+            val day = backStackEntry.arguments?.getInt("day")?.takeIf { it > 0 }
             CalendarScreen(
                 month = month,
                 year = year,
+                selectedDay = day,
                 navController = navController,
                 calendarViewModel = calendarViewModel
             )
