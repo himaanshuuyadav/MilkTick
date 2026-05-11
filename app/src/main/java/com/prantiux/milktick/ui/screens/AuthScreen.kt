@@ -240,12 +240,17 @@ fun AuthScreen(
                         onValueChange = { password = it },
                         label = { Text("Password") },
                         leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_fa_lock),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            Box(
+                                modifier = Modifier.size(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_fa_lock),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         },
                         trailingIcon = {
                             IconButton(
@@ -295,12 +300,17 @@ fun AuthScreen(
                             onValueChange = { confirmPassword = it },
                             label = { Text("Confirm Password") },
                             leadingIcon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_fa_lock),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Box(
+                                    modifier = Modifier.size(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_fa_lock),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             },
                             trailingIcon = {
                                 IconButton(
