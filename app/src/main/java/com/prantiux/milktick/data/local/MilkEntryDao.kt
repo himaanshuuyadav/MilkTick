@@ -11,6 +11,9 @@ interface MilkEntryDao {
     @Query("SELECT * FROM milk_entries WHERE userId = :userId AND yearMonth = :yearMonth AND isDeleted = 0 ORDER BY date DESC")
     fun getEntriesForMonth(userId: String, yearMonth: String): Flow<List<MilkEntryEntity>>
 
+    @Query("SELECT * FROM milk_entries WHERE userId = :userId AND isDeleted = 0 ORDER BY date DESC LIMIT :limit")
+    fun getLatestEntriesForUser(userId: String, limit: Int): Flow<List<MilkEntryEntity>>
+
     @Query("SELECT * FROM milk_entries WHERE userId = :userId AND date = :date LIMIT 1")
     suspend fun getEntryForDate(userId: String, date: String): MilkEntryEntity?
 
