@@ -22,6 +22,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.firebase.auth.FirebaseAuth
@@ -170,7 +171,6 @@ fun MilkTickApp(intent: Intent? = null) {
     val mainTabRoutes = listOf(
         Screen.Home.route,
         Screen.Records.route,
-        Screen.Summary.route,
         Screen.Settings.route
     )
     
@@ -199,7 +199,7 @@ fun MilkTickApp(intent: Intent? = null) {
                     onNavigate = { route ->
                         // Navigate with single top to avoid multiple instances
                         navController.navigate(route) {
-                            popUpTo(Screen.Home.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }
                             launchSingleTop = true
