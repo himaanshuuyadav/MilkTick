@@ -9,6 +9,16 @@ enum class PaymentRecordType {
     REFUND
 }
 
+enum class PaymentMethod {
+    UPI,
+    CASH,
+    BANK_TRANSFER,
+    CARD,
+    WALLET,
+    BARTER,
+    OTHER
+}
+
 data class PaymentRecord(
     val id: String,
     val userId: String,
@@ -16,5 +26,6 @@ data class PaymentRecord(
     val note: String = "",
     val recordedAt: LocalDateTime,
     val appliedYearMonth: YearMonth,
-    val type: PaymentRecordType = PaymentRecordType.PAYMENT
+    val type: PaymentRecordType = PaymentRecordType.PAYMENT,
+    val paymentMethod: PaymentMethod? = null
 )
