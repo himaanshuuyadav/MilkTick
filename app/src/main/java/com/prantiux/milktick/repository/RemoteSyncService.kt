@@ -3,6 +3,7 @@ package com.prantiux.milktick.repository
 import android.util.Log
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyRate
+import com.prantiux.milktick.data.PaymentMethod
 import com.prantiux.milktick.data.PaymentRecord
 import com.prantiux.milktick.data.PaymentRecordType
 import com.prantiux.milktick.data.local.SyncState
@@ -107,7 +108,10 @@ class RemoteSyncService(
                     note = entity.note,
                     recordedAt = LocalDateTime.ofEpochSecond(entity.recordedAt / 1000, 0, ZoneOffset.UTC),
                     appliedYearMonth = YearMonth.parse(entity.appliedYearMonth),
-                    type = PaymentRecordType.valueOf(entity.type)
+                    type = PaymentRecordType.valueOf(entity.type),
+                    paymentMethod = entity.paymentMethod?.let { method ->
+                        runCatching { PaymentMethod.valueOf(method) }.getOrNull()
+                    }
                 )
                 val result = firestoreRepository.savePaymentRecord(payment)
                 if (result.isSuccess) {
