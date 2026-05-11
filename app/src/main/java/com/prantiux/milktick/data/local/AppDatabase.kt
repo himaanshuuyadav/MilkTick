@@ -14,7 +14,7 @@ import androidx.room.TypeConverters
         MonthlyPaymentEntity::class,
         SyncMetadataEntity::class
     ],
-    version = 3,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
