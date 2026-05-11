@@ -3,6 +3,7 @@ package com.prantiux.milktick.repository
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyPayment
 import com.prantiux.milktick.data.MonthlyRate
+import com.prantiux.milktick.data.PaymentMethod
 import com.prantiux.milktick.data.PaymentRecord
 import com.prantiux.milktick.data.PaymentRecordType
 import com.prantiux.milktick.data.local.AppDatabase
@@ -30,6 +31,12 @@ class LocalRepository(
     fun getEntriesForMonth(userId: String, yearMonth: YearMonth): Flow<List<MilkEntry>> {
         val key = yearMonth.format(yearMonthFormatter)
         return database.milkEntryDao().getEntriesForMonth(userId, key).map { entities ->
+            entities.map { entity -> entity.toDomain() }
+        }
+    }
+
+    fun getLatestEntriesForUser(userId: String, limit: Int): Flow<List<MilkEntry>> {
+        return database.milkEntryDao().getLatestEntriesForUser(userId, limit).map { entities ->
             entities.map { entity -> entity.toDomain() }
         }
     }
@@ -200,6 +207,7 @@ class LocalRepository(
                 recordedAt = record.recordedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
                 appliedYearMonth = record.appliedYearMonth.format(yearMonthFormatter),
                 type = record.type.name,
+                paymentMethod = record.paymentMethod?.name,
                 localUpdatedAt = System.currentTimeMillis(),
                 remoteUpdatedAt = null,
                 syncState = state
@@ -352,7 +360,10 @@ class LocalRepository(
             note = note,
             recordedAt = LocalDateTime.ofEpochSecond(recordedAt / 1000, 0, ZoneOffset.UTC),
             appliedYearMonth = YearMonth.parse(appliedYearMonth, yearMonthFormatter),
-            type = PaymentRecordType.valueOf(type)
+            type = PaymentRecordType.valueOf(type),
+            paymentMethod = paymentMethod?.let { method ->
+                runCatching { PaymentMethod.valueOf(method) }.getOrNull()
+            }
         )
     }
 }
