@@ -7,6 +7,7 @@ import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyPayment
 import com.prantiux.milktick.data.MonthlyRate
 import com.prantiux.milktick.data.MonthlySummary
+import com.prantiux.milktick.data.PaymentMethod
 import com.prantiux.milktick.data.PaymentRecord
 import com.prantiux.milktick.data.PaymentRecordType
 import kotlinx.coroutines.flow.Flow
@@ -504,6 +505,7 @@ class FirestoreRepository {
                 "recordedAt" to record.recordedAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
                 "appliedYearMonth" to record.appliedYearMonth.format(yearMonthFormatter),
                 "type" to record.type.name,
+                "paymentMethod" to record.paymentMethod?.name,
                 "timestamp" to System.currentTimeMillis()
             )
 
@@ -559,7 +561,10 @@ class FirestoreRepository {
                             doc.getString("appliedYearMonth") ?: yearMonth.format(yearMonthFormatter),
                             yearMonthFormatter
                         ),
-                        type = PaymentRecordType.valueOf(doc.getString("type") ?: PaymentRecordType.PAYMENT.name)
+                        type = PaymentRecordType.valueOf(doc.getString("type") ?: PaymentRecordType.PAYMENT.name),
+                        paymentMethod = doc.getString("paymentMethod")?.let { method ->
+                            runCatching { PaymentMethod.valueOf(method) }.getOrNull()
+                        }
                     )
                 } catch (e: Exception) {
                     Log.e("FirestoreRepo", "Error parsing payment record", e)
@@ -595,7 +600,10 @@ class FirestoreRepository {
                                     .format(yearMonthFormatter),
                             yearMonthFormatter
                         ),
-                        type = PaymentRecordType.valueOf(doc.getString("type") ?: PaymentRecordType.PAYMENT.name)
+                        type = PaymentRecordType.valueOf(doc.getString("type") ?: PaymentRecordType.PAYMENT.name),
+                        paymentMethod = doc.getString("paymentMethod")?.let { method ->
+                            runCatching { PaymentMethod.valueOf(method) }.getOrNull()
+                        }
                     )
                 } catch (e: Exception) {
                     Log.e("FirestoreRepo", "Error parsing payment record during full sync", e)
@@ -607,7 +615,7 @@ class FirestoreRepository {
             emptyList()
         }
     }
-    
+
     // Save notification settings
     suspend fun saveNotificationSettings(
         userId: String,
