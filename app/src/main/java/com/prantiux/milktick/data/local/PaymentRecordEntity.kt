@@ -11,6 +11,7 @@ data class PaymentRecordEntity(
     val recordedAt: Long,
     val appliedYearMonth: String,
     val type: String,
+    val paymentMethod: String?,
     val localUpdatedAt: Long,
     val remoteUpdatedAt: Long?,
     val syncState: SyncState
