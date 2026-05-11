@@ -3,6 +3,7 @@ package com.prantiux.milktick.repository
 import android.content.Context
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyPayment
+import com.prantiux.milktick.data.PaymentMethod
 import com.prantiux.milktick.data.MonthlyRate
 import com.prantiux.milktick.data.PaymentRecord
 import com.prantiux.milktick.data.PaymentRecordType
@@ -31,6 +32,10 @@ class MainRepository(
 
     fun getMilkEntriesForMonth(userId: String, yearMonth: YearMonth): Flow<List<MilkEntry>> {
         return localRepository.getEntriesForMonth(userId, yearMonth)
+    }
+
+    fun getLatestMilkEntriesForUser(userId: String, limit: Int): Flow<List<MilkEntry>> {
+        return localRepository.getLatestEntriesForUser(userId, limit)
     }
 
     suspend fun getMilkEntriesForMonthSync(userId: String, yearMonth: YearMonth): List<MilkEntry> {
@@ -138,7 +143,30 @@ class MainRepository(
             note = note,
             recordedAt = LocalDateTime.now(),
             appliedYearMonth = yearMonth,
-            type = PaymentRecordType.PAYMENT
+            type = PaymentRecordType.PAYMENT,
+            paymentMethod = null
+        )
+        localRepository.savePaymentRecord(record, SyncState.PENDING_CREATE)
+        triggerSync()
+        return Result.success(Unit)
+    }
+
+    suspend fun addPaymentRecord(
+        userId: String,
+        yearMonth: YearMonth,
+        amount: Double,
+        note: String,
+        paymentMethod: PaymentMethod?
+    ): Result<Unit> {
+        val record = PaymentRecord(
+            id = UUID.randomUUID().toString(),
+            userId = userId,
+            amount = amount,
+            note = note,
+            recordedAt = LocalDateTime.now(),
+            appliedYearMonth = yearMonth,
+            type = PaymentRecordType.PAYMENT,
+            paymentMethod = paymentMethod
         )
         localRepository.savePaymentRecord(record, SyncState.PENDING_CREATE)
         triggerSync()
@@ -154,7 +182,8 @@ class MainRepository(
             note = note.ifBlank { "Previous due adjustment" },
             recordedAt = LocalDateTime.now(),
             appliedYearMonth = yearMonth,
-            type = PaymentRecordType.ADJUSTMENT
+            type = PaymentRecordType.ADJUSTMENT,
+            paymentMethod = null
         )
         localRepository.savePaymentRecord(record, SyncState.PENDING_CREATE)
         triggerSync()
