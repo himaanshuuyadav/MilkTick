@@ -1,6 +1,7 @@
 package com.prantiux.milktick.repository
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
@@ -73,6 +74,21 @@ class AuthRepository {
             )
             firestore.collection("users").document(user.uid).set(userProfile).await()
             
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
+            val email = user.email ?: return Result.failure(Exception("Missing email address for reauthentication"))
+
+            val credential = EmailAuthProvider.getCredential(email, currentPassword)
+            user.reauthenticate(credential).await()
+            user.updatePassword(newPassword).await()
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
