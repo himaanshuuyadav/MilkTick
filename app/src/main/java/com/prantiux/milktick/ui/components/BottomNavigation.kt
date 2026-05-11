@@ -68,7 +68,6 @@ fun BottomNavigation(
     val items = listOf(
         BottomNavItem(Screen.Home.route, R.drawable.ic_fa_house, stringResource(R.string.nav_home)),
         BottomNavItem(Screen.Records.route, R.drawable.ic_fa_list, stringResource(R.string.nav_records)),
-        BottomNavItem(Screen.Summary.route, R.drawable.ic_fa_file_lines, stringResource(R.string.nav_summary)),
         BottomNavItem(Screen.Settings.route, R.drawable.ic_fa_gear, stringResource(R.string.nav_settings))
     )
 
@@ -226,7 +225,7 @@ fun BottomNavigation(
                                 }
                             }
                         }
-                        if (item.route == Screen.Summary.route) {
+                        if (item.route == Screen.Records.route) {
                             Box(
                                 modifier = Modifier
                                     .width(1.dp)
