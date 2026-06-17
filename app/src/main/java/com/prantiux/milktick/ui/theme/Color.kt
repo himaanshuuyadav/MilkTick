@@ -62,4 +62,16 @@ val MilkOnSurfaceLight = Color(0xFF000000) // Black text on surfaces
 val MilkOnSurfaceVariantLight = Color(0xFF424242) // Dark gray text
 
 val MilkOutlineLight = Color(0xFF003153) // Navy outline (same as dark)
-val MilkOutlineVariantLight = Color(0xFF004C7A) // Lighter navy variant 
+val MilkOutlineVariantLight = Color(0xFF004C7A) // Lighter navy variant
+
+// Semantic Colors for Light/Dark Mode
+val SemanticSuccessLight = Color(0xFF2E7D32) // Dark green for good contrast on white
+val SemanticSuccessDark = Color(0xFF4CAF50) // Bright green for dark mode
+val SemanticErrorLight = Color(0xFFC62828) // Dark red for light mode
+val SemanticErrorDark = Color(0xFFE57373) // Bright red for dark mode
+val SemanticWarningLight = Color(0xFFE65100) // Dark orange
+val SemanticWarningDark = Color(0xFFF57C00) // Bright orange
+val SemanticSuccessVariantLight = Color(0xFFE8F5E9) // Light green for backgrounds
+val SemanticSuccessVariantDark = Color(0xFF1B5E20) // Very dark green for backgrounds
+val SemanticErrorVariantLight = Color(0xFFFFEBEE) // Light red for backgrounds
+val SemanticErrorVariantDark = Color(0xFFB71C1C) // Very dark red for backgrounds

@@ -1,8 +1,9 @@
 package com.prantiux.milktick.viewmodel
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
-import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -12,9 +13,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.YearMonth
 
-class RecordsViewModel : ViewModel() {
-    private val firestoreRepository: MainRepository = AppGraph.mainRepository
-    private var yearObserverJob: Job? = null
+@HiltViewModel
+class RecordsViewModel @Inject constructor(
+    private val firestoreRepository: MainRepository
+) : ViewModel() {
+        private var yearObserverJob: Job? = null
     
     private val _uiState = MutableStateFlow(RecordsUiState())
     val uiState: StateFlow<RecordsUiState> = _uiState.asStateFlow()

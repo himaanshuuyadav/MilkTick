@@ -17,7 +17,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.prantiux.milktick.R
@@ -40,8 +40,8 @@ private data class SettingsEntry(
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel(),
-    appViewModel: AppViewModel = viewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    appViewModel: AppViewModel = hiltViewModel()
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -184,7 +184,7 @@ fun SettingsScreen(
 // Simple Profile Card without Edit Button
 @Composable
 fun SimpleProfileCard(userEmail: String) {
-    val authViewModel: AuthViewModel = viewModel()
+    val authViewModel: AuthViewModel = hiltViewModel()
     val currentUser by authViewModel.currentUser.collectAsState()
     
     // Use Firebase Auth displayName if available, otherwise extract from email
@@ -302,8 +302,10 @@ fun SettingsItem(
 
 private fun groupedSettingsCardShape(index: Int, lastIndex: Int): RoundedCornerShape {
     return when {
-        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
-        index == lastIndex -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        lastIndex == 0 -> RoundedCornerShape(24.dp)
+        index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
+        index == lastIndex -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
         else -> RoundedCornerShape(8.dp)
     }
 }
+

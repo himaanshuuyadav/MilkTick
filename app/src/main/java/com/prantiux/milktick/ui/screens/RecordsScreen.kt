@@ -18,6 +18,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
+import dagger.hilt.android.EntryPointAccessors
+import com.prantiux.milktick.di.RepositoryEntryPoint
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +30,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
@@ -47,9 +49,9 @@ import java.util.*
 @Composable
 fun RecordsScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel(),
-    recordsViewModel: RecordsViewModel = viewModel(),
-    appViewModel: AppViewModel = viewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    recordsViewModel: RecordsViewModel = hiltViewModel(),
+    appViewModel: AppViewModel = hiltViewModel()
 ) {
     val uiState by recordsViewModel.uiState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -323,10 +325,7 @@ fun RecordsScreen(
 
                         DropdownMenu(
                             expanded = showExportMenu,
-                            onDismissRequest = { showExportMenu = false },
-                            shape = RoundedCornerShape(24.dp),
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp
+                            onDismissRequest = { showExportMenu = false }
                         ) {
                             DropdownMenuItem(
                                 text = {
@@ -473,8 +472,9 @@ fun MonthCard(
 
 private fun groupedCardShape(index: Int, lastIndex: Int): RoundedCornerShape {
     return when {
-        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
-        index == lastIndex -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        lastIndex == 0 -> RoundedCornerShape(24.dp)
+        index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
+        index == lastIndex -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
         else -> RoundedCornerShape(8.dp)
     }
 }
@@ -489,9 +489,9 @@ fun YearExportDialog(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) {
-        com.prantiux.milktick.repository.AppGraph.initialize(context)
+        
     }
-    val repository = remember { com.prantiux.milktick.repository.AppGraph.mainRepository }
+    val repository = remember(context) { EntryPointAccessors.fromApplication(context.applicationContext, RepositoryEntryPoint::class.java).mainRepository() }
     
     var isExporting by remember { mutableStateOf(false) }
     var entriesData by remember { mutableStateOf<List<com.prantiux.milktick.data.MilkEntry>>(emptyList()) }
@@ -525,6 +525,7 @@ fun YearExportDialog(
         if (shouldExport) {
             isExporting = true
             exportMessage = exportYearData(
+                context = context,
                 year = year,
                 userId = userId,
                 entries = entriesData
@@ -786,12 +787,13 @@ fun YearExportDialog(
 }
 
 suspend fun exportYearData(
+    context: android.content.Context,
     year: Int,
     userId: String,
     entries: List<com.prantiux.milktick.data.MilkEntry>
 ): String {
     return try {
-        val repository = com.prantiux.milktick.repository.AppGraph.mainRepository
+        val repository = EntryPointAccessors.fromApplication(context.applicationContext, RepositoryEntryPoint::class.java).mainRepository()
         
         // Create MilkTick directory in Documents folder
         val documentsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS)
@@ -852,3 +854,4 @@ suspend fun exportYearData(
         "Export failed: ${e.message}"
     }
 }
+

@@ -17,6 +17,39 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
+
+@Immutable
+data class SemanticColors(
+    val success: Color,
+    val successVariant: Color,
+    val error: Color,
+    val errorVariant: Color,
+    val warning: Color,
+    val onSemantic: Color
+)
+
+val lightSemanticColors = SemanticColors(
+    success = SemanticSuccessLight,
+    successVariant = SemanticSuccessVariantLight,
+    error = SemanticErrorLight,
+    errorVariant = SemanticErrorVariantLight,
+    warning = SemanticWarningLight,
+    onSemantic = Color(0xFFFFFFFF)
+)
+
+val darkSemanticColors = SemanticColors(
+    success = SemanticSuccessDark,
+    successVariant = SemanticSuccessVariantDark,
+    error = SemanticErrorDark,
+    errorVariant = SemanticErrorVariantDark,
+    warning = SemanticWarningDark,
+    onSemantic = Color(0xFFFFFFFF)
+)
+
+val LocalSemanticColors = staticCompositionLocalOf { lightSemanticColors }
 
 // Material 3 Expressive Dark Color Scheme
 private fun getDarkColorScheme(accentColor: androidx.compose.ui.graphics.Color) = darkColorScheme(
@@ -109,10 +142,14 @@ fun MilkTickTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = MilkTickShapes,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalSemanticColors provides if (darkTheme) darkSemanticColors else lightSemanticColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = MilkTickShapes,
+            content = content
+        )
+    }
 }

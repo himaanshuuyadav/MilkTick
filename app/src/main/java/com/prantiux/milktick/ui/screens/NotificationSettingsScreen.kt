@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import dagger.hilt.android.EntryPointAccessors
+import com.prantiux.milktick.di.RepositoryEntryPoint
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,7 +21,6 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.prantiux.milktick.R
 import com.prantiux.milktick.notification.NotificationScheduler
-import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
 import com.prantiux.milktick.ui.components.MilkTickSubpageSystemBarsGradient
 import com.prantiux.milktick.utils.NotificationPreferences
@@ -32,10 +33,10 @@ fun NotificationSettingsScreen(
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
-        AppGraph.initialize(context)
+        
     }
     val prefs = remember { NotificationPreferences(context) }
-    val repository = remember { AppGraph.mainRepository }
+    val repository = remember(context) { EntryPointAccessors.fromApplication(context.applicationContext, RepositoryEntryPoint::class.java).mainRepository() }
     val scope = rememberCoroutineScope()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     
@@ -121,7 +122,7 @@ fun NotificationSettingsScreen(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Row(
                             modifier = Modifier
@@ -322,7 +323,7 @@ fun NotificationTimeCard(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(24.dp)
     ) {
         Column {
             Row(

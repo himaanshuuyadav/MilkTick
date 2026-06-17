@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.material3.*
+import dagger.hilt.android.EntryPointAccessors
+import com.prantiux.milktick.di.RepositoryEntryPoint
 import androidx.compose.runtime.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -31,6 +33,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import com.prantiux.milktick.ui.theme.LocalSemanticColors
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
@@ -41,7 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.navigation.Screen
@@ -54,7 +57,6 @@ import com.prantiux.milktick.viewmodel.AuthViewModel
 import com.prantiux.milktick.viewmodel.CalendarUiState
 import com.prantiux.milktick.viewmodel.CalendarViewModel
 import com.prantiux.milktick.viewmodel.EntryDetail
-import com.prantiux.milktick.repository.AppGraph
 import android.content.Context
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -74,8 +76,8 @@ fun CalendarScreen(
     navController: NavController,
     year: Int,
     month: Int,
-    authViewModel: AuthViewModel = viewModel(),
-    calendarViewModel: CalendarViewModel = viewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
     val uiState by calendarViewModel.uiState.collectAsState()
@@ -182,10 +184,7 @@ fun CalendarScreen(
 
                             DropdownMenu(
                                 expanded = showMonthMenu,
-                                onDismissRequest = { showMonthMenu = false },
-                                shape = RoundedCornerShape(24.dp),
-                                tonalElevation = 0.dp,
-                                shadowElevation = 0.dp
+                                onDismissRequest = { showMonthMenu = false }
                             ) {
                                 DropdownMenuItem(
                                     text = { Text("Export Month Data") },
@@ -311,7 +310,7 @@ fun CalendarScreen(
                         Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                         shape = RoundedCornerShape(24.dp)
@@ -408,7 +407,7 @@ fun CalendarScreen(
                                             text = "₹${String.format("%.2f", uiState.amountPaid)}",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = Color(0xFF2E7D32)
+                                            color = LocalSemanticColors.current.success
                                         )
                                     }
 
@@ -422,7 +421,7 @@ fun CalendarScreen(
                                             text = "₹${String.format("%.2f", uiState.carryDueAmount)}",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = if (uiState.carryDueAmount > 0) Color(0xFFC62828) else Color(0xFF2E7D32)
+                                            color = if (uiState.carryDueAmount > 0) LocalSemanticColors.current.error else LocalSemanticColors.current.success
                                         )
                                     }
                                 }
@@ -432,7 +431,7 @@ fun CalendarScreen(
                                     Text(
                                         text = "Cleared in ${clearedIn.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${clearedIn.year}",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color(0xFF2E7D32)
+                                        color = LocalSemanticColors.current.success
                                     )
                                 }
 
@@ -634,12 +633,12 @@ private fun PaymentLedgerSheet(
             Text(
                 text = "Settled: ₹${String.format("%.2f", uiState.amountPaid)}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF2E7D32)
+                color = LocalSemanticColors.current.success
             )
             Text(
                 text = "Open Balance: ₹${String.format("%.2f", uiState.carryDueAmount)}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (uiState.carryDueAmount > 0) Color(0xFFC62828) else Color(0xFF2E7D32)
+                color = if (uiState.carryDueAmount > 0) LocalSemanticColors.current.error else LocalSemanticColors.current.success
             )
         }
 
@@ -648,7 +647,7 @@ private fun PaymentLedgerSheet(
             Text(
                 text = "Due cleared in ${sheetClearedIn.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${sheetClearedIn.year}",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF2E7D32)
+                color = LocalSemanticColors.current.success
             )
         }
 
@@ -656,7 +655,7 @@ private fun PaymentLedgerSheet(
             Text(
                 text = "Advance Credit: ₹${String.format("%.2f", uiState.advanceCredit)}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF2E7D32)
+                color = LocalSemanticColors.current.success
             )
         }
 
@@ -668,7 +667,7 @@ private fun PaymentLedgerSheet(
                 placeholder = { Text("Enter payment amount") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(24.dp)
             )
 
             OutlinedTextField(
@@ -677,7 +676,7 @@ private fun PaymentLedgerSheet(
                 label = { Text("Note (optional)") },
                 placeholder = { Text("UPI / cash / previous due details") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 minLines = 2,
                 maxLines = 4
             )
@@ -831,7 +830,7 @@ private fun PaymentLedgerSheet(
                             }
                         }
 
-                        val amountColor = if (record.amount < 0) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                        val amountColor = if (record.amount < 0) MaterialTheme.colorScheme.error else LocalSemanticColors.current.success
                         val amountText = if (record.amount < 0) "-₹${String.format("%.2f", kotlin.math.abs(record.amount))}" else "₹${String.format("%.2f", record.amount)}"
 
                         Text(
@@ -910,14 +909,14 @@ fun DayCell(
 ) {
     // Priority: Entry (green) > No Delivery (red) > Today (blue) > Default (gray)
     val backgroundColor = when {
-        hasEntry -> Color(0xFF4CAF50) // Solid green for entries
-        hasNoDelivery -> Color(0xFFE57373) // Solid red for no delivery
+        hasEntry -> LocalSemanticColors.current.success // Solid green for entries
+        hasNoDelivery -> LocalSemanticColors.current.error // Solid red for no delivery
         isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     
     val textColor = when {
-        hasEntry || hasNoDelivery || isToday -> Color.White
+        hasEntry || hasNoDelivery || isToday -> LocalSemanticColors.current.onSemantic
         else -> MaterialTheme.colorScheme.onSurface
     }
     
@@ -1095,8 +1094,8 @@ fun DateDetailDialog(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = when {
-                                hasEntry -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                                hasNoDelivery -> Color(0xFFE57373).copy(alpha = 0.1f)
+                                hasEntry -> LocalSemanticColors.current.success.copy(alpha = 0.1f)
+                                hasNoDelivery -> LocalSemanticColors.current.error.copy(alpha = 0.1f)
                                 else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                             }
                         ),
@@ -1119,8 +1118,8 @@ fun DateDetailDialog(
                                 ),
                                 contentDescription = null,
                                 tint = when {
-                                    hasEntry -> Color(0xFF4CAF50)
-                                    hasNoDelivery -> Color(0xFFE57373)
+                                    hasEntry -> LocalSemanticColors.current.success
+                                    hasNoDelivery -> LocalSemanticColors.current.error
                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                                 },
                                 modifier = Modifier.size(24.dp)
@@ -1134,8 +1133,8 @@ fun DateDetailDialog(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = when {
-                                    hasEntry -> Color(0xFF4CAF50)
-                                    hasNoDelivery -> Color(0xFFE57373)
+                                    hasEntry -> LocalSemanticColors.current.success
+                                    hasNoDelivery -> LocalSemanticColors.current.error
                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                                 }
                             )
@@ -1284,7 +1283,7 @@ fun DateDetailDialog(
                                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                                         focusedLabelColor = MaterialTheme.colorScheme.primary
                                     ),
-                                    shape = RoundedCornerShape(20.dp)
+                                    shape = RoundedCornerShape(24.dp)
                                 )
 
                                 // Note input
@@ -1670,9 +1669,9 @@ fun UpdateMonthlyRateDialog(
     ) {
         val context = androidx.compose.ui.platform.LocalContext.current
         LaunchedEffect(Unit) {
-            AppGraph.initialize(context)
+            
         }
-        val repository = remember { AppGraph.mainRepository }
+        val repository = remember(context) { EntryPointAccessors.fromApplication(context.applicationContext, RepositoryEntryPoint::class.java).mainRepository() }
         val scope = rememberCoroutineScope()
 
         var rateText by remember { mutableStateOf(if (currentRate > 0) currentRate.toString() else "") }
@@ -1744,7 +1743,7 @@ fun UpdateMonthlyRateDialog(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = !isSaving,
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(24.dp)
                         )
                     }
 
@@ -1781,7 +1780,7 @@ fun UpdateMonthlyRateDialog(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = !isSaving,
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(24.dp)
                         )
                     }
 
@@ -1857,3 +1856,5 @@ fun UpdateMonthlyRateDialog(
             }
         }
     }
+
+

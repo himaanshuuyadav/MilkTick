@@ -1,7 +1,7 @@
 package com.prantiux.milktick.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,7 +15,7 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Auth.route
 ) {
-    val calendarViewModel: CalendarViewModel = viewModel()
+    val calendarViewModel: CalendarViewModel = hiltViewModel()
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.Auth.route) {
@@ -61,14 +61,13 @@ fun NavGraph(
         ) { backStackEntry ->
             val month = backStackEntry.arguments?.getInt("month") ?: 0
             val year = backStackEntry.arguments?.getInt("year") ?: 0
-            val day = backStackEntry.arguments?.getInt("day")?.takeIf { it > 0 }
             CalendarScreen(
                 month = month,
                 year = year,
-                selectedDay = day,
                 navController = navController,
                 calendarViewModel = calendarViewModel
             )
         }
     }
 }
+

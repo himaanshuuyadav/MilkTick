@@ -5,22 +5,25 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.prantiux.milktick.repository.AppGraph
+import androidx.hilt.work.HiltWorker
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import com.prantiux.milktick.repository.MainRepository
 
-class SyncWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class SyncWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val repository: MainRepository
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
         return try {
-            AppGraph.initialize(applicationContext)
-            val repo = AppGraph.mainRepository
             if (!isNetworkConnected(applicationContext)) {
-                repo.markAllPendingAsFailed()
+                repository.markAllPendingAsFailed()
                 return Result.success()
             }
-            repo.runBackgroundSync()
+            repository.runBackgroundSync()
             Result.success()
         } catch (e: Exception) {
             Result.retry()

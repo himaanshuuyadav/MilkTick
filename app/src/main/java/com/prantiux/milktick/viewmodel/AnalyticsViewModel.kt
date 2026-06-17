@@ -1,8 +1,9 @@
 package com.prantiux.milktick.viewmodel
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
-import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,9 +13,11 @@ import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.math.roundToInt
 
-class AnalyticsViewModel : ViewModel() {
-    private val firestoreRepository: MainRepository = AppGraph.mainRepository
-    
+@HiltViewModel
+class AnalyticsViewModel @Inject constructor(
+    private val firestoreRepository: MainRepository
+) : ViewModel() {
+        
     private val _analyticsData = MutableStateFlow(AnalyticsData())
     val analyticsData: StateFlow<AnalyticsData> = _analyticsData.asStateFlow()
     

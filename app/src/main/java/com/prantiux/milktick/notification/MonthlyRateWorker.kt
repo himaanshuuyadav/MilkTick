@@ -1,27 +1,26 @@
 package com.prantiux.milktick.notification
 
 import android.content.Context
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.firebase.auth.FirebaseAuth
-import com.prantiux.milktick.repository.AppGraph
+import androidx.hilt.work.HiltWorker
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import com.prantiux.milktick.repository.MainRepository
-import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import java.time.YearMonth
 
-class MonthlyRateWorker(
-    context: Context,
-    params: WorkerParameters
-) : Worker(context, params) {
+@HiltWorker
+class MonthlyRateWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val repository: MainRepository
+) : CoroutineWorker(appContext, workerParams) {
     
-    private val repository: MainRepository by lazy {
-        AppGraph.initialize(applicationContext)
-        AppGraph.mainRepository
-    }
     private val auth = FirebaseAuth.getInstance()
     
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         return try {
             val today = LocalDate.now()
             val userId = auth.currentUser?.uid
@@ -30,10 +29,8 @@ class MonthlyRateWorker(
                 val yearMonth = YearMonth.from(today)
                 
                 // Check if monthly rate is set for current month
-                val rateExists = runBlocking {
-                    val rate = repository.getMonthlyRate(userId, yearMonth)
-                    rate != null && rate.ratePerLiter > 0
-                }
+                val rate = repository.getMonthlyRate(userId, yearMonth)
+                val rateExists = rate != null && rate.ratePerLiter > 0
                 
                 // Send notification on 1st of month OR daily if rate not set
                 if (today.dayOfMonth == 1 || !rateExists) {

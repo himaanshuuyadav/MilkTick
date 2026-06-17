@@ -12,8 +12,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
+        android:name=".MilkTickApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -44,6 +47,29 @@
                 <action android:name="com.prantiux.milktick.ACTION_MILK_NO" />
             </intent-filter>
         </receiver>
+
+        <!-- Alarm Receiver -->
+        <receiver
+            android:name=".notification.AlarmReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prantiux.milktick.ACTION_DAILY_ALARM" />
+                <action android:name="com.prantiux.milktick.ACTION_EVENING_ALARM" />
+                <action android:name="com.prantiux.milktick.ACTION_MONTHLY_ALARM" />
+            </intent-filter>
+        </receiver>
+        <!-- Remove default WorkManager initializer -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest> 

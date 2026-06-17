@@ -49,7 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.prantiux.milktick.R
 import com.prantiux.milktick.ui.components.MilkTickRateEditorSkeleton
 import com.prantiux.milktick.viewmodel.AppViewModel
@@ -62,9 +62,9 @@ import java.time.format.DateTimeFormatter
 fun RateEditorContent(
     modifier: Modifier = Modifier,
     bottomSpacing: Dp = 16.dp,
-    rateViewModel: RateViewModel = viewModel(),
-    authViewModel: AuthViewModel = viewModel(),
-    appViewModel: AppViewModel = viewModel()
+    rateViewModel: RateViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
+    appViewModel: AppViewModel = hiltViewModel()
 ) {
     val uiState by rateViewModel.uiState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -219,7 +219,7 @@ fun RateEditorContent(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -274,7 +274,7 @@ fun RateEditorContent(
                                     label = { Text(stringResource(R.string.milk_rate_per_liter)) },
                                     placeholder = { Text(stringResource(R.string.rate_hint)) },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = RoundedCornerShape(24.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -287,7 +287,7 @@ fun RateEditorContent(
                                     label = { Text("Default Quantity (Liters)") },
                                     placeholder = { Text("Enter default milk quantity") },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = RoundedCornerShape(24.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -301,7 +301,7 @@ fun RateEditorContent(
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
                                     ),
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = RoundedCornerShape(24.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(16.dp),
@@ -329,7 +329,7 @@ fun RateEditorContent(
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
                                     ),
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = RoundedCornerShape(24.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(16.dp),
@@ -505,3 +505,4 @@ fun RateEditorContent(
 
     }
 }
+

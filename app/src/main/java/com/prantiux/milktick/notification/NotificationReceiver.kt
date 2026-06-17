@@ -1,12 +1,13 @@
 package com.prantiux.milktick.notification
 
 import android.content.BroadcastReceiver
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.prantiux.milktick.data.MilkEntry
-import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,15 +15,14 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
+@AndroidEntryPoint
 class NotificationReceiver : BroadcastReceiver() {
     
-    private lateinit var repository: MainRepository
+    @Inject lateinit var repository: MainRepository
     private val auth = FirebaseAuth.getInstance()
     
     override fun onReceive(context: Context, intent: Intent) {
-        AppGraph.initialize(context.applicationContext)
-        repository = AppGraph.mainRepository
-        when (intent.action) {
+                        when (intent.action) {
             NotificationHelper.ACTION_MILK_YES -> {
                 handleMilkYes(context)
             }
@@ -33,6 +33,7 @@ class NotificationReceiver : BroadcastReceiver() {
     }
     
     private fun handleMilkYes(context: Context) {
+        val pendingResult = goAsync()
         val userId = auth.currentUser?.uid
         if (userId != null) {
             CoroutineScope(Dispatchers.IO).launch {
@@ -75,8 +76,12 @@ class NotificationReceiver : BroadcastReceiver() {
                     
                 } catch (e: Exception) {
                     Log.e("NotificationReceiver", "Error saving milk entry", e)
+                } finally {
+                    pendingResult.finish()
                 }
             }
+        } else {
+            pendingResult.finish()
         }
         
         // Cancel the notification
@@ -84,6 +89,7 @@ class NotificationReceiver : BroadcastReceiver() {
     }
     
     private fun handleMilkNo(context: Context) {
+        val pendingResult = goAsync()
         val userId = auth.currentUser?.uid
         if (userId != null) {
             CoroutineScope(Dispatchers.IO).launch {
@@ -92,19 +98,38 @@ class NotificationReceiver : BroadcastReceiver() {
                     val yearMonth = YearMonth.from(today)
                     
                     // Check if entry exists for today
-                    val entries = repository.getMilkEntriesForMonthSync(userId, yearMonth)
-                    val todayEntry = entries.firstOrNull { it.date == today }
+                    val todayEntry = repository.getMilkEntryForDate(userId, today)
                     
-                    // If entry exists, delete it
-                    if (todayEntry != null) {
-                        repository.deleteMilkEntry(userId, today)
-                        Log.d("NotificationReceiver", "Deleted entry for $today")
+                    if (todayEntry == null) {
+                        // Create milk entry as absent (0 quantity)
+                        val entry = MilkEntry(
+                            date = today,
+                            quantity = 0f,
+                            brought = false,
+                            note = "No delivery - marked via daily notification",
+                            userId = userId
+                        )
+                        repository.saveMilkEntry(entry)
+                        Log.d("NotificationReceiver", "Saved absent entry for $today")
+                    } else if (todayEntry.brought) {
+                        // Update existing entry to absent
+                        val updatedEntry = todayEntry.copy(
+                            quantity = 0f,
+                            brought = false,
+                            note = "No delivery - marked via daily notification"
+                        )
+                        repository.saveMilkEntry(updatedEntry)
+                        Log.d("NotificationReceiver", "Updated entry to absent for $today")
                     }
                     
                 } catch (e: Exception) {
                     Log.e("NotificationReceiver", "Error handling No action", e)
+                } finally {
+                    pendingResult.finish()
                 }
             }
+        } else {
+            pendingResult.finish()
         }
         
         // Cancel the notification

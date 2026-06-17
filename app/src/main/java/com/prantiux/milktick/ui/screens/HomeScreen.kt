@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.prantiux.milktick.ui.theme.LocalSemanticColors
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
@@ -26,7 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.activity.ComponentActivity
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.ui.components.MilkTickHomeEntrySkeleton
@@ -43,9 +44,9 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeScreen(
     @Suppress("UNUSED_PARAMETER") navController: NavController,
-    authViewModel: AuthViewModel = viewModel(),
-    appViewModel: AppViewModel = viewModel(),
-    homeViewModel: HomeViewModel = viewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    appViewModel: AppViewModel = hiltViewModel(),
+    homeViewModel: HomeViewModel = hiltViewModel()
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val uiState by homeViewModel.uiState.collectAsState()
@@ -289,7 +290,7 @@ fun HomeScreen(
                                                 label = { Text(stringResource(R.string.quantity)) },
                                                 placeholder = { Text(stringResource(R.string.quantity_hint)) },
                                                 modifier = Modifier.fillMaxWidth(),
-                                                shape = RoundedCornerShape(16.dp),
+                                                shape = RoundedCornerShape(24.dp),
                                                 colors = OutlinedTextFieldDefaults.colors(
                                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                                                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -312,7 +313,7 @@ fun HomeScreen(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 minLines = 1,
                                                 maxLines = 6,
-                                                shape = RoundedCornerShape(16.dp),
+                                                shape = RoundedCornerShape(24.dp),
                                                 colors = OutlinedTextFieldDefaults.colors(
                                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                                                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -337,7 +338,7 @@ fun HomeScreen(
                                                 colors = CardDefaults.cardColors(
                                                     containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
                                                 ),
-                                                shape = RoundedCornerShape(16.dp)
+                                                shape = RoundedCornerShape(24.dp)
                                             ) {
                                                 Row(
                                                     modifier = Modifier.padding(16.dp),
@@ -371,7 +372,7 @@ fun HomeScreen(
                                                 colors = CardDefaults.cardColors(
                                                     containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
                                                 ),
-                                                shape = RoundedCornerShape(16.dp)
+                                                shape = RoundedCornerShape(24.dp)
                                             ) {
                                                 Row(
                                                     modifier = Modifier.padding(16.dp),
@@ -473,9 +474,9 @@ private fun HomeAnimatedHeader(
         SyncState.PENDING_CREATE, SyncState.PENDING_UPDATE, SyncState.PENDING_DELETE ->
             Triple(R.drawable.ic_sync_rotate, MaterialTheme.colorScheme.primary, "Syncing")
         SyncState.FAILED ->
-            Triple(R.drawable.ic_sync_retry, Color(0xFFF57C00), "Sync failed")
+            Triple(R.drawable.ic_sync_retry, LocalSemanticColors.current.warning, "Sync failed")
         SyncState.SYNCED ->
-            Triple(R.drawable.ic_sync_cloud, Color(0xFF2E7D32), "Synced")
+            Triple(R.drawable.ic_sync_cloud, LocalSemanticColors.current.success, "Synced")
     }
 
     val isSyncing = syncState == SyncState.PENDING_CREATE ||
@@ -524,7 +525,7 @@ private fun HomeAnimatedHeader(
                         painter = painterResource(R.drawable.header_logo),
                         contentDescription = "MilkTick",
                         modifier = Modifier.size(30.dp),
-                        tint = Color.Unspecified
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -694,3 +695,4 @@ private fun BoxScope.HomeSaveActionBar(
 
     }
 }
+

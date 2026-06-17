@@ -1,10 +1,11 @@
 package com.prantiux.milktick.viewmodel
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MonthlyRate
 import com.prantiux.milktick.data.local.SyncState
-import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,9 +14,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.YearMonth
 
-class RateViewModel : ViewModel() {
-    private val firestoreRepository: MainRepository = AppGraph.mainRepository
-    private var monthlyRateObserverJob: Job? = null
+@HiltViewModel
+class RateViewModel @Inject constructor(
+    private val firestoreRepository: MainRepository
+) : ViewModel() {
+        private var monthlyRateObserverJob: Job? = null
     private var syncStateObserverJob: Job? = null
     
     private val _uiState = MutableStateFlow(RateUiState())

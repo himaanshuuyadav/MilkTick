@@ -20,7 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
@@ -31,7 +31,7 @@ import com.prantiux.milktick.navigation.NavGraph
 import com.prantiux.milktick.navigation.Screen
 import com.prantiux.milktick.notification.NotificationHelper
 import com.prantiux.milktick.notification.NotificationScheduler
-import com.prantiux.milktick.repository.AppGraph
+import com.prantiux.milktick.repository.MainRepository
 import com.prantiux.milktick.ui.components.BottomNavigation
 import com.prantiux.milktick.sync.SyncWorkScheduler
 import com.prantiux.milktick.ui.theme.MilkTickTheme
@@ -39,8 +39,14 @@ import com.prantiux.milktick.viewmodel.AuthState
 import com.prantiux.milktick.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
+    
+    @javax.inject.Inject
+    lateinit var mainRepository: MainRepository
     
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -59,15 +65,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        AppGraph.initialize(applicationContext)
         SyncWorkScheduler.schedulePeriodicSync(applicationContext, repeatMinutes = 30)
 
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser != null) {
             lifecycleScope.launch {
-                val repo = AppGraph.mainRepository
-                if (repo.shouldRunInitialSync(currentUser.uid)) {
-                    repo.performInitialSyncIfNeeded(currentUser.uid)
+                if (mainRepository.shouldRunInitialSync(currentUser.uid)) {
+                    mainRepository.performInitialSyncIfNeeded(currentUser.uid)
                 }
             }
         }
@@ -130,7 +134,7 @@ class MainActivity : ComponentActivity() {
 @Suppress("DEPRECATION")
 fun MilkTickApp(intent: Intent? = null) {
     val navController = rememberNavController()
-    val authViewModel: AuthViewModel = viewModel()
+    val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.authState.collectAsState()
     val view = LocalView.current
     val context = androidx.compose.ui.platform.LocalContext.current

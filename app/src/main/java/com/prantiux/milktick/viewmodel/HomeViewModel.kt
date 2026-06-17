@@ -1,10 +1,11 @@
 package com.prantiux.milktick.viewmodel
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.local.SyncState
-import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
@@ -15,9 +16,11 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
-class HomeViewModel : ViewModel() {
-    private val firestoreRepository: MainRepository = AppGraph.mainRepository
-    private var todayEntryObserverJob: Job? = null
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val firestoreRepository: MainRepository
+) : ViewModel() {
+        private var todayEntryObserverJob: Job? = null
     private var monthlyRateObserverJob: Job? = null
     private var syncStateObserverJob: Job? = null
     private var activeUserId: String? = null

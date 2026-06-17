@@ -1,35 +1,32 @@
 package com.prantiux.milktick.notification
 
 import android.content.Context
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.firebase.auth.FirebaseAuth
-import com.prantiux.milktick.repository.AppGraph
+import androidx.hilt.work.HiltWorker
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import com.prantiux.milktick.repository.MainRepository
-import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import java.time.YearMonth
 
-class EveningReminderWorker(
-    context: Context,
-    params: WorkerParameters
-) : Worker(context, params) {
+@HiltWorker
+class EveningReminderWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val repository: MainRepository
+) : CoroutineWorker(appContext, workerParams) {
     
-    private val repository: MainRepository by lazy {
-        AppGraph.initialize(applicationContext)
-        AppGraph.mainRepository
-    }
     private val auth = FirebaseAuth.getInstance()
     
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         return try {
             val userId = auth.currentUser?.uid
             
             if (userId != null) {
                 // Check if milk entry exists for today
-                val hasEntry = runBlocking {
-                    checkIfEntryExistsForToday(userId)
-                }
+                val hasEntry = checkIfEntryExistsForToday(userId)
                 
                 // Only send notification if no entry exists
                 if (!hasEntry) {

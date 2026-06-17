@@ -16,13 +16,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.github.mikephil.charting.charts.BarChart
-import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.components.XAxis
-import com.github.mikephil.charting.data.*
-import com.github.mikephil.charting.formatter.ValueFormatter
+import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
+import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
+import com.patrykandpatrick.vico.compose.chart.Chart
+import com.patrykandpatrick.vico.compose.chart.column.columnChart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.core.entry.entryModelOf
+import com.patrykandpatrick.vico.core.entry.FloatEntry
+import com.patrykandpatrick.vico.core.entry.entryOf
+import com.patrykandpatrick.vico.core.axis.AxisPosition
+import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
 import com.prantiux.milktick.R
 import com.prantiux.milktick.viewmodel.AnalyticsViewModel
 import com.prantiux.milktick.viewmodel.AppViewModel
@@ -38,8 +43,8 @@ import java.util.Locale
 @Composable
 fun AnalyticsScreen(
     navController: NavController,
-    appViewModel: AppViewModel = viewModel(),
-    analyticsViewModel: AnalyticsViewModel = viewModel()
+    appViewModel: AppViewModel = hiltViewModel(),
+    analyticsViewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val currentUserId by appViewModel.currentUserId.collectAsState()
     val analyticsData by analyticsViewModel.analyticsData.collectAsState()
@@ -246,201 +251,58 @@ fun MonthlyComparisonChart(
     currentMonthName: String,
     previousMonthName: String
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
-    
-    AndroidView(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(250.dp),
-        factory = { context ->
-            BarChart(context).apply {
-                description.isEnabled = false
-                setDrawGridBackground(false)
-                setDrawBarShadow(false)
-                legend.isEnabled = true
-                setScaleEnabled(false)
-                setPinchZoom(false)
-                
-                val entries = listOf(
-                    BarEntry(0f, previousMonth),
-                    BarEntry(1f, currentMonth)
-                )
-                
-                val dataSet = BarDataSet(entries, "Quantity (Liters)").apply {
-                    colors = listOf(secondaryColor.toArgb(), primaryColor.toArgb())
-                    valueTextSize = 12f
-                    valueTextColor = android.graphics.Color.BLACK
-                }
-                
-                val barData = BarData(dataSet).apply {
-                    barWidth = 0.5f
-                }
-                
-                data = barData
-                
-                xAxis.apply {
-                    position = XAxis.XAxisPosition.BOTTOM
-                    setDrawGridLines(false)
-                    granularity = 1f
-                    textSize = 12f
-                    valueFormatter = object : ValueFormatter() {
-                        override fun getFormattedValue(value: Float): String {
-                            return when (value.toInt()) {
-                                0 -> previousMonthName
-                                1 -> currentMonthName
-                                else -> ""
-                            }
-                        }
-                    }
-                }
-                
-                axisLeft.apply {
-                    setDrawGridLines(true)
-                    gridColor = android.graphics.Color.LTGRAY
-                    gridLineWidth = 0.5f
-                    textSize = 12f
-                }
-                
-                axisRight.isEnabled = false
-                
-                animateY(800)
-                invalidate()
-            }
+    val model = entryModelOf(previousMonth, currentMonth)
+    val bottomAxisFormatter = AxisValueFormatter<AxisPosition.Horizontal.Bottom> { value, _ ->
+        when (value.toInt()) {
+            0 -> previousMonthName
+            1 -> currentMonthName
+            else -> ""
         }
+    }
+    Chart(
+        chart = columnChart(),
+        model = model,
+        startAxis = rememberStartAxis(),
+        bottomAxis = rememberBottomAxis(valueFormatter = bottomAxisFormatter),
+        modifier = Modifier.fillMaxWidth().height(250.dp)
     )
 }
 
 @Composable
 fun YearlyTrendChart(monthlyData: List<Float>) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    
-    AndroidView(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(250.dp),
-        factory = { context ->
-            LineChart(context).apply {
-                description.isEnabled = false
-                setDrawGridBackground(false)
-                legend.isEnabled = false
-                setScaleEnabled(false)
-                setPinchZoom(false)
-                
-                val entries = monthlyData.mapIndexed { index, value ->
-                    Entry(index.toFloat(), value)
-                }
-                
-                val dataSet = LineDataSet(entries, "Monthly Consumption").apply {
-                    color = primaryColor.toArgb()
-                    lineWidth = 3f
-                    setCircleColor(primaryColor.toArgb())
-                    circleRadius = 5f
-                    setDrawCircleHole(false)
-                    valueTextSize = 10f
-                    valueTextColor = android.graphics.Color.BLACK
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
-                    setDrawFilled(true)
-                    fillColor = primaryColor.toArgb()
-                    fillAlpha = 50
-                }
-                
-                data = LineData(dataSet)
-                
-                xAxis.apply {
-                    position = XAxis.XAxisPosition.BOTTOM
-                    setDrawGridLines(false)
-                    granularity = 1f
-                    textSize = 10f
-                    valueFormatter = object : ValueFormatter() {
-                        override fun getFormattedValue(value: Float): String {
-                            val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-                            val index = value.toInt()
-                            return if (index in months.indices) months[index] else ""
-                        }
-                    }
-                }
-                
-                axisLeft.apply {
-                    setDrawGridLines(true)
-                    gridColor = android.graphics.Color.LTGRAY
-                    gridLineWidth = 0.5f
-                    textSize = 10f
-                }
-                
-                axisRight.isEnabled = false
-                
-                animateX(1000)
-                invalidate()
-            }
-        }
+    if (monthlyData.isEmpty()) return
+    val entries = monthlyData.mapIndexed { index, value -> entryOf(index, value) }
+    val model = entryModelOf(entries)
+    val bottomAxisFormatter = AxisValueFormatter<AxisPosition.Horizontal.Bottom> { value, _ ->
+        val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        val index = value.toInt()
+        if (index in months.indices) months[index] else ""
+    }
+    Chart(
+        chart = lineChart(),
+        model = model,
+        startAxis = rememberStartAxis(),
+        bottomAxis = rememberBottomAxis(valueFormatter = bottomAxisFormatter),
+        modifier = Modifier.fillMaxWidth().height(250.dp)
     )
 }
 
 @Composable
 fun CostTrendChart(costData: List<Float>) {
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-    
-    AndroidView(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(250.dp),
-        factory = { context ->
-            LineChart(context).apply {
-                description.isEnabled = false
-                setDrawGridBackground(false)
-                legend.isEnabled = false
-                setScaleEnabled(false)
-                setPinchZoom(false)
-                
-                val entries = costData.mapIndexed { index, value ->
-                    Entry(index.toFloat(), value)
-                }
-                
-                val dataSet = LineDataSet(entries, "Cost/Liter").apply {
-                    color = tertiaryColor.toArgb()
-                    lineWidth = 3f
-                    setCircleColor(tertiaryColor.toArgb())
-                    circleRadius = 5f
-                    setDrawCircleHole(false)
-                    valueTextSize = 10f
-                    valueTextColor = android.graphics.Color.BLACK
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
-                    setDrawFilled(true)
-                    fillColor = tertiaryColor.toArgb()
-                    fillAlpha = 50
-                }
-                
-                data = LineData(dataSet)
-                
-                xAxis.apply {
-                    position = XAxis.XAxisPosition.BOTTOM
-                    setDrawGridLines(false)
-                    granularity = 1f
-                    textSize = 10f
-                    valueFormatter = object : ValueFormatter() {
-                        override fun getFormattedValue(value: Float): String {
-                            val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-                            val index = value.toInt()
-                            return if (index in months.indices) months[index] else ""
-                        }
-                    }
-                }
-                
-                axisLeft.apply {
-                    setDrawGridLines(true)
-                    gridColor = android.graphics.Color.LTGRAY
-                    gridLineWidth = 0.5f
-                    textSize = 10f
-                }
-                
-                axisRight.isEnabled = false
-                
-                animateX(1000)
-                invalidate()
-            }
-        }
+    if (costData.isEmpty()) return
+    val entries = costData.mapIndexed { index, value -> entryOf(index, value) }
+    val model = entryModelOf(entries)
+    val bottomAxisFormatter = AxisValueFormatter<AxisPosition.Horizontal.Bottom> { value, _ ->
+        val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        val index = value.toInt()
+        if (index in months.indices) months[index] else ""
+    }
+    Chart(
+        chart = lineChart(),
+        model = model,
+        startAxis = rememberStartAxis(),
+        bottomAxis = rememberBottomAxis(valueFormatter = bottomAxisFormatter),
+        modifier = Modifier.fillMaxWidth().height(250.dp)
     )
 }
+

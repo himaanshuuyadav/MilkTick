@@ -18,7 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.prantiux.milktick.R
 import com.prantiux.milktick.ui.components.MilkTickSubpageFloatingHeader
@@ -29,7 +29,7 @@ import com.prantiux.milktick.viewmodel.AuthViewModel
 @Composable
 fun ChangePasswordScreen(
     navController: NavController,
-    @Suppress("UNUSED_PARAMETER") authViewModel: AuthViewModel = viewModel()
+    @Suppress("UNUSED_PARAMETER") authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -149,6 +149,7 @@ fun ChangePasswordScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 focusedLabelColor = MaterialTheme.colorScheme.primary
@@ -183,6 +184,7 @@ fun ChangePasswordScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 focusedLabelColor = MaterialTheme.colorScheme.primary
@@ -221,6 +223,7 @@ fun ChangePasswordScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 focusedLabelColor = MaterialTheme.colorScheme.primary
@@ -242,7 +245,7 @@ fun ChangePasswordScreen(
                         .fillMaxWidth()
                         .height(56.dp),
                     enabled = isFormValid,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
@@ -286,3 +289,4 @@ fun ChangePasswordScreen(
         }
     }
 }
+

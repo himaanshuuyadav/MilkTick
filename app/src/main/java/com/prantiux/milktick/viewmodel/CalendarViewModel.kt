@@ -1,11 +1,12 @@
 package com.prantiux.milktick.viewmodel
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.PaymentRecord
 import com.prantiux.milktick.data.local.SyncState
-import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -53,8 +54,9 @@ data class CalendarUiState(
     val error: String? = null
 )
 
-class CalendarViewModel(
-    private val repository: MainRepository = AppGraph.mainRepository
+@HiltViewModel
+class CalendarViewModel @Inject constructor(
+    private val repository: MainRepository
 ) : ViewModel() {
 
     private data class MonthBucket(

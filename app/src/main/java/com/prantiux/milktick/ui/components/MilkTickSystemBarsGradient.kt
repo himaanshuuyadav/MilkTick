@@ -40,9 +40,9 @@ fun BoxScope.MilkTickSystemBarsGradient() {
     val bottomSolidHeight = navBarInset + (AppNavBarHeight * AppNavBarSolidFraction)
 
     val baseColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        MaterialTheme.colorScheme.surface
+        Color.Black
     } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.985f)
+        Color.White
     }
 
     val topSolidStop = (topSolidHeight / topGradientHeight).coerceIn(0f, 1f)

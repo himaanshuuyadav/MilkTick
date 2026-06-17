@@ -23,7 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.prantiux.milktick.R
@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun EditProfileScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
     @Suppress("UNUSED_VARIABLE") val context = LocalContext.current
@@ -150,6 +150,7 @@ fun EditProfileScreen(
                                 )
                             },
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 focusedLabelColor = MaterialTheme.colorScheme.primary
@@ -163,6 +164,7 @@ fun EditProfileScreen(
                             label = { Text("Email") },
                             enabled = false,
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                                 disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
@@ -209,7 +211,7 @@ fun EditProfileScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         if (isLoading) {
                             Row(
@@ -262,7 +264,7 @@ fun EditProfileScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Row(
                             modifier = Modifier
@@ -284,3 +286,4 @@ fun EditProfileScreen(
         }
     }
 }
+

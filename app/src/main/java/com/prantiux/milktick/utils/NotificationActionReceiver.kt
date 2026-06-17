@@ -1,18 +1,24 @@
 package com.prantiux.milktick.utils
 
 import android.content.BroadcastReceiver
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import com.prantiux.milktick.repository.MainRepository
 import android.content.Context
 import android.content.Intent
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.prantiux.milktick.data.MilkEntry
-import com.prantiux.milktick.repository.AppGraph
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
+@AndroidEntryPoint
 class NotificationActionReceiver : BroadcastReceiver() {
+    @Inject
+    lateinit var repository: MainRepository
+
     
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
@@ -80,9 +86,11 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 }
 
-class AddMilkEntryWorker(
-    context: Context,
-    params: WorkerParameters
+@androidx.hilt.work.HiltWorker
+class AddMilkEntryWorker @dagger.assisted.AssistedInject constructor(
+    @dagger.assisted.Assisted context: Context,
+    @dagger.assisted.Assisted params: WorkerParameters,
+    private val repository: MainRepository
 ) : CoroutineWorker(context, params) {
     
     override suspend fun doWork(): Result {
@@ -93,8 +101,6 @@ class AddMilkEntryWorker(
             val isReminder = inputData.getBoolean("isReminder", false)
             
             val date = LocalDate.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE)
-            AppGraph.initialize(applicationContext)
-            val repository = AppGraph.mainRepository
             
             // Get default quantity for current month
             val yearMonth = YearMonth.of(date.year, date.monthValue)

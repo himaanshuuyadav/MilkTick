@@ -2,10 +2,11 @@ package com.prantiux.milktick.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import com.prantiux.milktick.data.MilkEntry
 import com.prantiux.milktick.data.MonthlyRate
-import com.prantiux.milktick.repository.AppGraph
 import com.prantiux.milktick.repository.MainRepository
 import com.prantiux.milktick.utils.CsvExporter
 import kotlinx.coroutines.delay
@@ -17,9 +18,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.YearMonth
 
-class SummaryViewModel : ViewModel() {
-    private val firestoreRepository: MainRepository = AppGraph.mainRepository
-    private val csvExporter = CsvExporter()
+@HiltViewModel
+class SummaryViewModel @Inject constructor(
+    private val firestoreRepository: MainRepository
+) : ViewModel() {
+        private val csvExporter = CsvExporter()
     private var monthlyDataJob: Job? = null
     
     private val _uiState = MutableStateFlow(SummaryUiState())

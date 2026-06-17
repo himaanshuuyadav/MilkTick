@@ -56,7 +56,7 @@ fun MilkTickFloatingHeader(
                 .fillMaxWidth()
                 .height(60.dp),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = shadowElevation
         ) {
