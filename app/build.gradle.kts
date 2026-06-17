@@ -39,10 +39,10 @@ android {
             if (localPropertiesFile.exists()) {
                 localProperties.load(FileInputStream(localPropertiesFile))
             }
-            storeFile = file("../milktick-release-key.jks")
-            storePassword = localProperties.getProperty("KEYSTORE_PASSWORD") ?: "default_password"
+            storeFile = file("../milktick-github-release.jks")
+            storePassword = localProperties.getProperty("KEYSTORE_PASSWORD") ?: "milktickpass"
             keyAlias = "milktick"
-            keyPassword = localProperties.getProperty("KEYSTORE_PASSWORD") ?: "default_password"
+            keyPassword = localProperties.getProperty("KEYSTORE_PASSWORD") ?: "milktickpass"
         }
     }
     
@@ -50,7 +50,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            // signingConfig = signingConfigs.getByName("release") // Commented out since keystore doesn't exist
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
